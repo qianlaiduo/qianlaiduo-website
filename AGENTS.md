@@ -61,14 +61,14 @@
 - `components/ui-custom/MusicPlayer.tsx` — 背景音乐播放器（右下固定，深色金色风格）
 - `hooks/useScrollReveal.ts` — 滚动渐入动画 Hook（基于 IntersectionObserver）
 
-## 保险工具箱工具（4个交互式计算器）
+## 保险工具箱工具（4个交互式计算器 · 平安真实产品数据）
 
 | 工具 | 路径 | 说明 |
 |------|------|------|
-| 医疗险自助报价 | `components/sections/tools/MedicalInsuranceCalculator.tsx` | 年龄/性别/社保/家庭人数 → 保费预估 |
-| 社保养老金推算 | `components/sections/tools/PensionCalculator.tsx` | 当前年龄/工资/已缴年限 → 退休后月领 |
-| 商保本金倒推 | `components/sections/tools/AnnuityReverseCalculator.tsx` | 期望月领 → 倒推年缴保费 |
-| 理财保险计划书 | `components/sections/tools/InsurancePlanGenerator.tsx` | 生成增额寿/年金/分红险利益演示表 |
+| 医疗险自助报价 | `components/sections/tools/MedicalInsuranceCalculator.tsx` | 3款平安医疗险产品对比（e生保长期2025/e生保悦享版/安医保），8档年龄费率表，家庭折扣，推荐组合方案 |
+| 社保养老金推算 | `components/sections/tools/PensionCalculator.tsx` | 国标公式计算：基础养老金+个人账户养老金，含缴费指数、替代率进度条可视化 |
+| 商保本金倒推 | `components/sections/tools/AnnuityReverseCalculator.tsx` | 平安盛世金越（分红型），三档利率演示（1.75%/2.5%/3.5%），5种缴费方案对比，推荐10年缴 |
+| 理财保险计划书 | `components/sections/tools/InsurancePlanGenerator.tsx` | 3款产品：盛世金越分红/金越养老年金/盛世福2026重疾，30年利益演示表，回本年份标注 |
 
 ## 设计系统
 

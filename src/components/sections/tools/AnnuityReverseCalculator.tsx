@@ -2,150 +2,138 @@
 
 import { useState } from 'react';
 
-interface Result {
-  annualPremium: number;
+interface PlanRow {
+  years: number;
+  yearlyPremium: number;
   totalPremium: number;
-  accountValueAtRetire: number;
-  monthlyIncome: number;
-  bankComparison: number;
-  bankTotal: number;
+  totalReceive: number;
+  ratio: number;
+  monthlyReceive: number;
 }
 
-const ANNUAL_RATE = 0.03; // 3.0% 年复利
-
-function calcFutureValue(payment: number, years: number, rate: number): number {
-  // 期交保费复利增值（年初缴纳）
-  let fv = 0;
-  for (let i = 0; i < years; i++) {
-    fv = (fv + payment) * (1 + rate);
-  }
-  return fv;
+interface TierResult {
+  rate: number;
+  label: string;
+  color: string;
+  targetAmount: number; // 退休时需要账户总额
+  plans: PlanRow[];
 }
 
-function reverseCalc(
-  targetMonthly: number,
-  receiveYears: number,
-  retireAge: number,
-  currentAge: number,
-  payYears: number,
-  rate: number,
-  isLifelong: boolean
-): number {
-  // 退休时需要的账户总额
-  let requiredAtRetire: number;
+// 三档利率演示
+const RATE_TIERS = [
+  { rate: 0.0175, label: '保证利益 1.75%', color: '#94a3b8' },
+  { rate: 0.025, label: '中档分红 2.5%', color: '#38bdf8' },
+  { rate: 0.035, label: '高档演示 3.5%', color: '#d4af37' },
+];
 
-  if (isLifelong) {
-    // 终身领取：假设领至100岁，用永续年金近似 + 本金安全
-    const receivePeriod = 100 - retireAge;
-    // 用年金现值公式
-    requiredAtRetire = targetMonthly * 12 * ((1 - Math.pow(1 + rate, -receivePeriod)) / rate);
-  } else {
-    // 定期领取
-    requiredAtRetire = targetMonthly * 12 * ((1 - Math.pow(1 + rate, -receiveYears)) / rate);
-  }
+const PAYMENT_OPTIONS = [3, 5, 10, 15, 20];
 
-  // 倒推每年需要交多少保费
-  // FV = PMT * ((1+r)^n - 1) / r * (1+r)  →  PMT = FV / (((1+r)^n - 1) / r * (1+r))
-  const growthYears = retireAge - currentAge;
-  const accumulateYears = Math.min(payYears, growthYears);
+// 年金现值系数
+function annuityPV(rate: number, n: number): number {
+  if (rate === 0) return n;
+  return (1 - Math.pow(1 + rate, -n)) / rate;
+}
 
-  if (accumulateYears <= 0) return 0;
-
-  // 先算缴费期结束时的价值
-  // 然后这笔钱继续复利增值到退休
-  const fvFactor = ((Math.pow(1 + rate, accumulateYears) - 1) / rate) * (1 + rate);
-  const remainingYears = growthYears - accumulateYears;
-  const growthFactor = Math.pow(1 + rate, remainingYears);
-
-  const annualPremium = requiredAtRetire / (fvFactor * growthFactor);
-  return Math.ceil(annualPremium / 1000) * 1000; // 取整到千位
+// 年金终值系数
+function annuityFV(rate: number, n: number): number {
+  if (rate === 0) return n;
+  return (Math.pow(1 + rate, n) - 1) / rate;
 }
 
 export function AnnuityReverseCalculator() {
-  const [retireAge, setRetireAge] = useState(60);
   const [currentAge, setCurrentAge] = useState(35);
-  const [monthlyIncome, setMonthlyIncome] = useState(5000);
-  const [receiveYears, setReceiveYears] = useState(20);
-  const [isLifelong, setIsLifelong] = useState(false);
-  const [payYears, setPayYears] = useState(10);
-  const [result, setResult] = useState<Result | null>(null);
+  const [retireAge, setRetireAge] = useState(60);
+  const [monthlyExpect, setMonthlyExpect] = useState(5000);
+  const [endAge, setEndAge] = useState(85); // 领完年龄
+  const [results, setResults] = useState<TierResult[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [displayValues, setDisplayValues] = useState({
-    annual: 0,
-    total: 0,
-    account: 0,
-    monthly: 0,
-  });
-
-  const payYearOptions = [3, 5, 10, 15, 20];
-  const receiveYearOptions = [10, 15, 20];
+  const [activeTier, setActiveTier] = useState(2); // 默认高档
 
   const calculate = () => {
     setIsCalculating(true);
-    setResult(null);
+    setResults([]);
 
     setTimeout(() => {
-      const annualPremium = reverseCalc(
-        monthlyIncome,
-        receiveYears,
-        retireAge,
-        currentAge,
-        payYears,
-        ANNUAL_RATE,
-        isLifelong
-      );
+      const receiveYears = endAge - retireAge;
+      const yearsToRetire = retireAge - currentAge;
+      const totalMonthly = monthlyExpect * 12 * receiveYears;
 
-      const totalPremium = annualPremium * payYears;
-      const growthYears = retireAge - currentAge;
+      const newResults: TierResult[] = RATE_TIERS.map((tier) => {
+        // 退休时需要的账户总额 = 年金现值（月领转换为年领再算）
+        // 精确按月计算更准，这里用简化年领取近似
+        const yearlyReceive = monthlyExpect * 12;
+        const targetAmount = yearlyReceive * annuityPV(tier.rate, receiveYears);
 
-      // 计算退休时账户价值
-      let accountValue = 0;
-      for (let i = 0; i < growthYears; i++) {
-        if (i < payYears) {
-          accountValue = (accountValue + annualPremium) * (1 + ANNUAL_RATE);
-        } else {
-          accountValue = accountValue * (1 + ANNUAL_RATE);
-        }
-      }
+        const plans = PAYMENT_OPTIONS.map((payYears) => {
+          if (payYears > yearsToRetire + 1) {
+            return null; // 缴费年限不能超过到退休的时间
+          }
+          // 年缴保费 = 目标金额 / 年金终值系数(利率, 缴费年数)
+          // 但缴费完到退休还有积累时间，要算进去
+          const fvAtEndPay = targetAmount / Math.pow(1 + tier.rate, yearsToRetire - payYears);
+          const yearlyPremium = Math.round(fvAtEndPay / annuityFV(tier.rate, payYears) * (1 + tier.rate));
 
-      // 银行定存对比（按2%单利计算）
-      const bankRate = 0.02;
-      const bankTotal = totalPremium * (1 + bankRate * Math.min(payYears, growthYears));
-      // 银行定存能领的月金额（仅取利息，本金保留）
-      const bankMonthlyIncome = Math.round((bankTotal * bankRate) / 12);
+          const totalPremium = yearlyPremium * payYears;
+          const totalReceive = yearlyReceive * receiveYears;
+          const ratio = totalReceive / totalPremium;
 
-      setResult({
-        annualPremium,
-        totalPremium,
-        accountValueAtRetire: Math.round(accountValue),
-        monthlyIncome,
-        bankComparison: bankMonthlyIncome,
-        bankTotal: Math.round(bankTotal),
+          return {
+            years: payYears,
+            yearlyPremium,
+            totalPremium,
+            totalReceive: Math.round(totalReceive),
+            ratio,
+            monthlyReceive: monthlyExpect,
+          };
+        }).filter((p): p is PlanRow => p !== null);
+
+        return {
+          rate: tier.rate,
+          label: tier.label,
+          color: tier.color,
+          targetAmount: Math.round(targetAmount),
+          plans,
+        };
       });
 
       // 数字动画
-      const duration = 1000;
-      const steps = 50;
+      const duration = 800;
+      const steps = 40;
       let step = 0;
 
       const timer = setInterval(() => {
         step++;
         const progress = step / steps;
-        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        const ease = 1 - Math.pow(1 - progress, 3);
 
-        setDisplayValues({
-          annual: Math.round(annualPremium * easeProgress),
-          total: Math.round(totalPremium * easeProgress),
-          account: Math.round(accountValue * easeProgress),
-          monthly: Math.round(monthlyIncome * easeProgress),
-        });
+        setResults(
+          newResults.map((tier) => ({
+            ...tier,
+            targetAmount: Math.round(tier.targetAmount * ease),
+            plans: tier.plans.map((p) => ({
+              ...p,
+              yearlyPremium: Math.round(p.yearlyPremium * ease),
+              totalPremium: Math.round(p.totalPremium * ease),
+              totalReceive: Math.round(p.totalReceive * ease),
+            })),
+          }))
+        );
 
-        if (step >= steps) clearInterval(timer);
+        if (step >= steps) {
+          clearInterval(timer);
+          setResults(newResults);
+        }
       }, duration / steps);
 
       setIsCalculating(false);
-    }, 500);
+    }, 400);
   };
+
+  const yearsToRetire = retireAge - currentAge;
+  const receiveYears = endAge - retireAge;
+
+  // 找到推荐方案：缴费10年（中档）
+  const recommendedPlan = results[1]?.plans.find((p) => p.years === 10);
 
   return (
     <div className="pt-6">
@@ -161,8 +149,8 @@ export function AnnuityReverseCalculator() {
                 <input
                   type="number"
                   value={currentAge}
-                  onChange={(e) => setCurrentAge(Math.max(18, Math.min(65, Number(e.target.value))))}
-                  className="w-full px-4 py-3 rounded-xl bg-[rgba(15,23,42,0.8)] border border-[rgba(212,175,55,0.2)] text-[#f1f5f9] focus:border-[#a78bfa] focus:outline-none transition-colors"
+                  onChange={(e) => setCurrentAge(Math.max(0, Math.min(70, Number(e.target.value))))}
+                  className="w-full px-4 py-3 rounded-xl bg-[rgba(15,23,42,0.8)] border border-[rgba(212,175,55,0.2)] text-[#f1f5f9] focus:border-[#d4af37] focus:outline-none transition-colors"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b] text-sm">岁</span>
               </div>
@@ -176,221 +164,227 @@ export function AnnuityReverseCalculator() {
                 <input
                   type="number"
                   value={retireAge}
-                  onChange={(e) => setRetireAge(Math.max(50, Math.min(70, Number(e.target.value))))}
-                  className="w-full px-4 py-3 rounded-xl bg-[rgba(15,23,42,0.8)] border border-[rgba(212,175,55,0.2)] text-[#f1f5f9] focus:border-[#a78bfa] focus:outline-none transition-colors"
+                  onChange={(e) => setRetireAge(Math.max(currentAge + 5, Math.min(75, Number(e.target.value))))}
+                  className="w-full px-4 py-3 rounded-xl bg-[rgba(15,23,42,0.8)] border border-[rgba(212,175,55,0.2)] text-[#f1f5f9] focus:border-[#d4af37] focus:outline-none transition-colors"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b] text-sm">岁</span>
               </div>
             </div>
           </div>
 
-          <div>
-            <label className="text-[#f1f5f9] text-sm font-medium block mb-2">
-              期望月领金额
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={monthlyIncome}
-                onChange={(e) => setMonthlyIncome(Math.max(1000, Math.min(100000, Number(e.target.value))))}
-                className="w-full px-4 py-3 rounded-xl bg-[rgba(15,23,42,0.8)] border border-[rgba(212,175,55,0.2)] text-[#f1f5f9] text-lg font-bold focus:border-[#a78bfa] focus:outline-none transition-colors"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b]">元/月</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[#f1f5f9] text-sm font-medium block mb-2">
+                期望月领金额
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={monthlyExpect}
+                  onChange={(e) => setMonthlyExpect(Math.max(0, Number(e.target.value)))}
+                  className="w-full px-4 py-3 rounded-xl bg-[rgba(15,23,42,0.8)] border border-[rgba(212,175,55,0.2)] text-[#f1f5f9] focus:border-[#d4af37] focus:outline-none transition-colors"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b] text-sm">元</span>
+              </div>
             </div>
-            <input
-              type="range"
-              min="1000"
-              max="50000"
-              step="1000"
-              value={monthlyIncome}
-              onChange={(e) => setMonthlyIncome(Number(e.target.value))}
-              className="w-full h-2 bg-[#1e293b] rounded-full appearance-none cursor-pointer mt-3
-                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
-                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br
-                [&::-webkit-slider-thumb]:from-[#a78bfa] [&::-webkit-slider-thumb]:to-[#7c3aed]
-                [&::-webkit-slider-thumb]:cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #a78bfa 0%, #a78bfa ${((monthlyIncome - 1000) / 49000) * 100}%, #1e293b ${((monthlyIncome - 1000) / 49000) * 100}%, #1e293b 100%)`,
-              }}
-            />
-          </div>
 
-          <div>
-            <label className="text-[#f1f5f9] text-sm font-medium block mb-2">
-              领取年限
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {receiveYearOptions.map((y) => (
-                <button
-                  key={y}
-                  onClick={() => { setReceiveYears(y); setIsLifelong(false); }}
-                  className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                    !isLifelong && receiveYears === y
-                      ? 'bg-[rgba(167,139,250,0.15)] border-[#a78bfa] text-[#a78bfa]'
-                      : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(167,139,250,0.3)]'
-                  }`}
-                >
-                  {y}年
-                </button>
-              ))}
-              <button
-                onClick={() => setIsLifelong(true)}
-                className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                  isLifelong
-                    ? 'bg-[rgba(167,139,250,0.15)] border-[#a78bfa] text-[#a78bfa]'
-                    : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(167,139,250,0.3)]'
-                }`}
-              >
-                终身
-              </button>
+            <div>
+              <label className="text-[#f1f5f9] text-sm font-medium block mb-2">
+                领取至多少岁
+              </label>
+              <div className="grid grid-cols-4 gap-1">
+                {[75, 80, 85, 90].map((age) => (
+                  <button
+                    key={age}
+                    onClick={() => setEndAge(age)}
+                    className={`py-3 rounded-lg border text-sm font-medium transition-all ${
+                      endAge === age
+                        ? 'bg-[rgba(212,175,55,0.15)] border-[#d4af37] text-[#d4af37]'
+                        : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(212,175,55,0.3)]'
+                    }`}
+                  >
+                    {age}岁
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="text-[#f1f5f9] text-sm font-medium block mb-2">
-              缴费年限
-            </label>
-            <div className="grid grid-cols-5 gap-2">
-              {payYearOptions.map((y) => (
-                <button
-                  key={y}
-                  onClick={() => setPayYears(y)}
-                  className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                    payYears === y
-                      ? 'bg-[rgba(167,139,250,0.15)] border-[#a78bfa] text-[#a78bfa]'
-                      : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(167,139,250,0.3)]'
-                  }`}
-                >
-                  {y}年
-                </button>
-              ))}
+          {/* 信息摘要 */}
+          <div className="p-4 rounded-xl bg-[rgba(212,175,55,0.06)] border border-[rgba(212,175,55,0.15)] space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-[#94a3b8]">距离退休</span>
+              <span className="text-[#f1f5f9] font-medium">{yearsToRetire} 年</span>
             </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-[rgba(167,139,250,0.06)] border border-[rgba(167,139,250,0.15)]">
-            <p className="text-[#94a3b8] text-sm leading-relaxed">
-              <span className="text-[#a78bfa] font-medium">💡 测算说明：</span><br />
-              按年金险 3.0% 年复利估算，缴费期内每年投入，退休后按月领取。实际收益以合同为准。
-            </p>
+            <div className="flex justify-between text-sm">
+              <span className="text-[#94a3b8]">预计领取</span>
+              <span className="text-[#f1f5f9] font-medium">{receiveYears} 年 / {receiveYears * 12} 个月</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-[#94a3b8]">累计领取</span>
+              <span className="text-[#d4af37] font-bold">
+                ¥{(monthlyExpect * 12 * receiveYears).toLocaleString()}
+              </span>
+            </div>
           </div>
 
           <button
             onClick={calculate}
             disabled={isCalculating}
             className="w-full text-base !py-4 btn-gold"
-            style={{ background: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)' }}
           >
-            {isCalculating ? '测算中...' : '开始倒推保费'}
+            {isCalculating ? '倒推计算中...' : '开始倒推保费'}
           </button>
+
+          {/* 产品说明 */}
+          <div className="p-4 rounded-xl bg-[rgba(15,23,42,0.5)] border border-[rgba(212,175,55,0.1)]">
+            <p className="text-[#d4af37] text-sm font-medium mb-2">📋 演示产品：平安盛世金越（分红型）</p>
+            <p className="text-[#64748b] text-xs leading-relaxed">
+              展示三档利率演示：<br />
+              • 保证利益：1.75%（写入合同，100%保证）<br />
+              • 中档分红：2.5%（中档红利演示）<br />
+              • 高档演示：3.5%（高档红利演示，非保证）
+            </p>
+          </div>
         </div>
 
         {/* 右侧：结果区 */}
-        <div className="relative">
-          <div className="sticky top-24">
-            {result ? (
-              <div className="rounded-2xl border border-[rgba(167,139,250,0.3)] bg-gradient-to-br from-[rgba(167,139,250,0.08)] to-[rgba(15,23,42,0.8)] p-6 relative overflow-hidden">
-                <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#a78bfa]/10 rounded-full blur-3xl" />
-
-                <div className="relative">
-                  {/* 主结果 */}
-                  <div className="text-center mb-6 pb-6 border-b border-[rgba(167,139,250,0.15)]">
-                    <span className="inline-block px-3 py-1 rounded-full bg-[rgba(167,139,250,0.15)] text-[#a78bfa] text-xs font-medium mb-3">
-                      每年需缴保费
-                    </span>
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-[#a78bfa] text-lg">¥</span>
-                      <span className="text-[#a78bfa] text-5xl font-black">
-                        {displayValues.annual.toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-[#64748b] text-sm mt-2">
-                      连续缴费 {payYears} 年，共投入 ¥{displayValues.total.toLocaleString()}
-                    </p>
-                  </div>
-
-                  {/* 关键数据 */}
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="p-4 rounded-xl bg-[rgba(15,23,42,0.6)] text-center">
-                      <p className="text-[#64748b] text-xs mb-1">退休时账户总额</p>
-                      <p className="text-[#f1f5f9] text-lg font-bold">
-                        ¥{displayValues.account.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[rgba(15,23,42,0.6)] text-center">
-                      <p className="text-[#64748b] text-xs mb-1">每月可领</p>
-                      <p className="text-[#34d399] text-lg font-bold">
-                        ¥{displayValues.monthly.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 与银行定存对比 */}
-                  <div className="p-4 rounded-xl bg-[rgba(15,23,42,0.5)] mb-6">
-                    <p className="text-[#f1f5f9] text-sm font-medium mb-3">💎 与银行定存对比</p>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[#64748b]" />
-                          <span className="text-[#94a3b8] text-sm">银行定存（2%单利）</span>
-                        </div>
-                        <span className="text-[#94a3b8] text-sm">
-                          ¥{result.bankComparison.toLocaleString()}/月
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[#a78bfa]" />
-                          <span className="text-[#f1f5f9] text-sm font-medium">年金险（3%复利）</span>
-                        </div>
-                        <span className="text-[#a78bfa] text-sm font-bold">
-                          ¥{result.monthlyIncome.toLocaleString()}/月
-                        </span>
-                      </div>
-                      <div className="pt-2 border-t border-[rgba(167,139,250,0.1)]">
-                        <p className="text-[#34d399] text-xs text-center">
-                          ↑ 每月多领 ¥{(result.monthlyIncome - result.bankComparison).toLocaleString()}，差距越久越大
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 领取说明 */}
-                  <div className="flex items-start gap-2 mb-6 p-3 rounded-lg bg-[rgba(167,139,250,0.06)]">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 16v-4" />
-                      <path d="M12 8h.01" />
-                    </svg>
-                    <p className="text-[#94a3b8] text-xs leading-relaxed">
-                      {isLifelong ? '终身领取模式下，活多久领多久，与生命等长的现金流。' : `${receiveYears}年期领取，领满期后仍有现金价值，可退保或继续持有。`}
-                    </p>
-                  </div>
-
-                  <a href="#contact" className="w-full text-sm !py-3 btn-gold flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)' }}>
-                    获取专属养老方案
-                  </a>
-
-                  <p className="text-[#64748b] text-xs text-center mt-4">
-                    * 以上为估算演示，实际收益以保险合同约定为准
-                  </p>
-                </div>
+        <div className="space-y-4">
+          {results.length > 0 ? (
+            <>
+              {/* 三档利率切换 */}
+              <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-[rgba(15,23,42,0.6)] border border-[rgba(212,175,55,0.15)]">
+                {RATE_TIERS.map((tier, idx) => (
+                  <button
+                    key={tier.rate}
+                    onClick={() => setActiveTier(idx)}
+                    className={`py-2 px-2 rounded-lg text-xs font-medium transition-all ${
+                      activeTier === idx
+                        ? 'bg-gradient-to-r from-[#d4af37] to-[#f5d06a] text-[#0a0e1a]'
+                        : 'text-[#94a3b8] hover:text-[#f1f5f9]'
+                    }`}
+                  >
+                    {tier.label}
+                  </button>
+                ))}
               </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-[rgba(167,139,250,0.2)] bg-[rgba(15,23,42,0.3)] p-8 flex flex-col items-center justify-center min-h-[500px]">
-                <div className="w-20 h-20 rounded-full bg-[rgba(167,139,250,0.08)] flex items-center justify-center mb-4">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
-                    <rect x="4" y="2" width="16" height="20" rx="2" />
-                    <path d="M12 18v-4" />
-                    <path d="M10 16l2 2 2-2" />
-                  </svg>
-                </div>
-                <p className="text-[#94a3b8] text-center">
-                  设定你的养老目标<br />
-                  一键倒推需要投入多少保费
+
+              {/* 当前档位目标额 */}
+              <div className="p-5 rounded-2xl border border-[rgba(212,175,55,0.3)] bg-[rgba(212,175,55,0.06)] text-center">
+                <p className="text-[#94a3b8] text-sm mb-2">
+                  退休时需积累账户额度（{results[activeTier]?.label}）
+                </p>
+                <p className="text-3xl font-black gold-gradient-text">
+                  ¥{results[activeTier]?.targetAmount.toLocaleString()}
                 </p>
               </div>
-            )}
-          </div>
+
+              {/* 缴费方案表格 */}
+              <div className="rounded-2xl border border-[rgba(212,175,55,0.15)] bg-[rgba(15,23,42,0.6)] overflow-hidden">
+                <div className="grid grid-cols-5 gap-1 px-4 py-3 bg-[rgba(212,175,55,0.06)] border-b border-[rgba(212,175,55,0.15)]">
+                  <span className="text-[#d4af37] text-xs font-medium text-center">缴费期</span>
+                  <span className="text-[#d4af37] text-xs font-medium text-right">年缴</span>
+                  <span className="text-[#d4af37] text-xs font-medium text-right">总投入</span>
+                  <span className="text-[#d4af37] text-xs font-medium text-right">月领</span>
+                  <span className="text-[#d4af37] text-xs font-medium text-right">投入产出比</span>
+                </div>
+
+                {results[activeTier]?.plans.map((plan, idx) => (
+                  <div
+                    key={plan.years}
+                    className={`grid grid-cols-5 gap-1 px-4 py-3 border-b border-[rgba(212,175,55,0.08)] last:border-0 transition-colors ${
+                      plan.years === 10 ? 'bg-[rgba(212,175,55,0.04)]' : ''
+                    }`}
+                    style={{ animationDelay: `${idx * 80}ms` }}
+                  >
+                    <span className="text-[#f1f5f9] text-sm text-center font-medium">
+                      {plan.years}年交
+                      {plan.years === 10 && (
+                        <span className="ml-1 px-1.5 py-0.5 rounded bg-[rgba(212,175,55,0.2)] text-[#d4af37] text-[10px]">
+                          推荐
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[#f1f5f9] text-sm text-right font-medium">
+                      ¥{plan.yearlyPremium.toLocaleString()}
+                    </span>
+                    <span className="text-[#94a3b8] text-sm text-right">
+                      ¥{plan.totalPremium.toLocaleString()}
+                    </span>
+                    <span className="text-[#d4af37] text-sm text-right font-medium">
+                      ¥{plan.monthlyReceive.toLocaleString()}
+                    </span>
+                    <span className="text-[#34d399] text-sm text-right font-bold">
+                      {plan.ratio.toFixed(2)}倍
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 推荐方案卡片 */}
+              {recommendedPlan && (
+                <div className="relative p-5 rounded-2xl border border-[rgba(212,175,55,0.4)] bg-gradient-to-br from-[rgba(212,175,55,0.1)] to-[rgba(15,23,42,0.6)] overflow-hidden">
+                  <div className="absolute top-3 right-3">
+                    <span className="px-3 py-1 rounded-full bg-[#d4af37] text-[#0a0e1a] text-xs font-bold">
+                      ⭐ 推荐方案
+                    </span>
+                  </div>
+                  <p className="text-[#94a3b8] text-sm mb-2">
+                    平安盛世金越（分红型）· 中档演示 · 10年缴
+                  </p>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-[#d4af37] text-3xl font-black">
+                      ¥{recommendedPlan.yearlyPremium.toLocaleString()}
+                    </span>
+                    <span className="text-[#94a3b8] text-sm">元/年 × 10年</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-[#64748b] text-xs">总投入</p>
+                      <p className="text-[#f1f5f9] font-bold">
+                        ¥{(recommendedPlan.totalPremium / 10000).toFixed(1)}万
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[#64748b] text-xs">月领</p>
+                      <p className="text-[#d4af37] font-bold">
+                        ¥{recommendedPlan.monthlyReceive.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[#64748b] text-xs">领取总领</p>
+                      <p className="text-[#34d399] font-bold">
+                        {recommendedPlan.ratio.toFixed(2)}倍
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <a href="#contact" className="btn-gold w-full text-sm !py-3">
+                联系我获取详细方案
+              </a>
+
+              <p className="text-[#64748b] text-xs text-center">
+                * 以上为利益演示，分红非保证，实际以保单合同为准
+              </p>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[rgba(212,175,55,0.2)] bg-[rgba(15,23,42,0.3)] p-8 flex flex-col items-center justify-center min-h-[480px]">
+              <div className="w-20 h-20 rounded-full bg-[rgba(212,175,55,0.08)] flex items-center justify-center mb-4">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+                  <rect x="4" y="2" width="16" height="20" rx="2" />
+                  <line x1="12" y1="18" x2="12.01" y2="18" />
+                  <path d="M7 10h10M7 14h10M9 6h6" />
+                </svg>
+              </div>
+              <p className="text-[#94a3b8] text-center">
+                输入期望月领金额<br />
+                倒推需要准备多少养老金<br />
+                一次对比5种缴费方案
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
