@@ -65,7 +65,7 @@
 
 | 工具 | 路径 | 说明 |
 |------|------|------|
-| 医疗险自助报价 | `components/sections/tools/MedicalInsuranceCalculator.tsx` | 3款平安医疗险产品对比（e生保长期2025/e生保悦享版/安医保），8档年龄费率表，家庭折扣，推荐组合方案 |
+| 医疗险自助报价 | `components/sections/tools/MedicalInsuranceCalculator.tsx` | 3套平安医疗险方案对比（舒享+惠享+加享/悦享版计划四/安医保尊享版），方案一分性别按岁费率0-55岁，0免赔组合方案，费率数据见 `src/data/medical_rates_correct.json` |
 | 社保养老金推算 | `components/sections/tools/PensionCalculator.tsx` | 国标公式计算：基础养老金+个人账户养老金，含缴费指数、替代率进度条可视化 |
 | 商保本金倒推 | `components/sections/tools/AnnuityReverseCalculator.tsx` | 平安盛世金越（分红型），三档利率演示（1.75%/2.5%/3.5%），5种缴费方案对比，推荐10年缴 |
 | 理财保险计划书 | `components/sections/tools/InsurancePlanGenerator.tsx` | 3款产品：盛世金越分红/金越养老年金/盛世福2026重疾，30年利益演示表，回本年份标注 |

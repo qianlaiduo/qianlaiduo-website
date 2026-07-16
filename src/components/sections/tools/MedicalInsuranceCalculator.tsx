@@ -1,399 +1,432 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Shield, Activity, Heart } from 'lucide-react';
+import ratesData from '@/data/medical_rates_correct.json';
 
-// ==================== 产品数据 ====================
-const products = [
-  {
-    id: 'esb-long',
-    name: '平安e生保长期医疗（2025版）',
-    coverage: '年度400万 + 质子重离子400万',
-    renewLabel: '20年保证续保',
-    renewDesc: '写入合同，续保稳定',
-    highlights: ['院外特药含CAR-T', '800万保证续保期内', '家庭共享免赔额'],
-    color: '#d4af37',
-  },
-  {
-    id: 'esb-yue',
-    name: '平安e生保悦享版',
-    coverage: '600万医疗保障',
-    renewLabel: '1年期',
-    renewDesc: '60天内续保免等待期',
-    highlights: ['0免赔可选', '70岁可投', '4档计划灵活选'],
-    color: '#38bdf8',
-  },
-  {
-    id: 'anyibao',
-    name: '平安安医保',
-    coverage: '20万医疗 + 意外保障',
-    renewLabel: '1年期',
-    renewDesc: '住院+意外双保障',
-    highlights: ['0免赔住院医疗', '意外医疗同步享', '性价比优选'],
-    color: '#34d399',
-  },
-];
+// 家庭费率因子
+const FAMILY_FACTORS: Record<number, number> = {
+  1: 1.0,
+  2: 0.95,
+  3: 0.9,
+  4: 0.85,
+  5: 0.85,
+  6: 0.85,
+};
 
-// ==================== 费率表（有社保，元/年）====================
-const rateTableWithSocial = [
-  { minAge: 0, maxAge: 5, 'esb-long': 730, 'esb-yue': 730, anyibao: 880 },
-  { minAge: 6, maxAge: 15, 'esb-long': 197, 'esb-yue': 197, anyibao: 350 },
-  { minAge: 16, maxAge: 25, 'esb-long': 186, 'esb-yue': 186, anyibao: 280 },
-  { minAge: 26, maxAge: 35, 'esb-long': 309, 'esb-yue': 309, anyibao: 450 },
-  { minAge: 36, maxAge: 45, 'esb-long': 572, 'esb-yue': 572, anyibao: 780 },
-  { minAge: 46, maxAge: 55, 'esb-long': 1041, 'esb-yue': 1041, anyibao: 1280 },
-  { minAge: 56, maxAge: 65, 'esb-long': 2292, 'esb-yue': 2292, anyibao: 2200 },
-  { minAge: 66, maxAge: 70, 'esb-long': 3500, 'esb-yue': 3500, anyibao: 0 }, // 0 = 不支持
-];
-
-// 无社保系数
-const NO_SOCIAL_FACTOR = 2.27;
-
-// 家庭折扣
-const familyDiscounts = [
-  { members: 1, discount: 1, label: '单人价' },
-  { members: 2, discount: 0.95, label: '2人 95折' },
-  { members: 3, discount: 0.9, label: '3人 9折' },
-  { members: 4, discount: 0.85, label: '4-6人 85折' },
-  { members: 5, discount: 0.85, label: '4-6人 85折' },
-  { members: 6, discount: 0.85, label: '4-6人 85折' },
-];
-
-// ==================== 计算函数 ====================
-function getPremium(age: number, hasSocial: boolean, productId: string): number {
-  const tier = rateTableWithSocial.find(
-    (t) => age >= t.minAge && age <= t.maxAge
-  );
-  if (!tier) return 0;
-
-  const baseRate = tier[productId as keyof typeof tier] as number;
-  if (baseRate === 0) return 0; // 不支持
-
-  return hasSocial ? baseRate : Math.round(baseRate * NO_SOCIAL_FACTOR);
+interface PlanResult {
+  key: string;
+  name: string;
+  description: string;
+  deductible: string;
+  renewal: string;
+  coverage: string;
+  sellingPoint: string;
+  premium: number;
+  originalPremium: number;
+  discount: number;
+  isUnavailable?: boolean;
+  tag?: string;
 }
 
-function getDiscount(members: number): number {
-  const d = familyDiscounts.find((f) => f.members === members);
-  return d ? d.discount : 1;
+// 数字滚动动画 Hook
+function useAnimatedNumber(target: number, duration = 1200): number {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const startValueRef = useRef(0);
+
+  useEffect(() => {
+    if (target <= 0) {
+      setValue(0);
+      return;
+    }
+    startValueRef.current = value;
+    startTimeRef.current = null;
+
+    const animate = (timestamp: number) => {
+      if (startTimeRef.current === null) startTimeRef.current = timestamp;
+      const elapsed = timestamp - startTimeRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = startValueRef.current + (target - startValueRef.current) * eased;
+      setValue(current);
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+
+  return value;
 }
 
-// ==================== 组件 ====================
-export function MedicalInsuranceCalculator() {
-  const [age, setAge] = useState(30);
+function formatMoney(n: number): string {
+  return Math.round(n).toLocaleString('zh-CN');
+}
+
+export default function MedicalInsuranceCalculator() {
+  const [age, setAge] = useState(35);
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [hasSocial, setHasSocial] = useState(true);
-  const [familyMembers, setFamilyMembers] = useState(1);
+  const [familyCount, setFamilyCount] = useState(1);
   const [showResult, setShowResult] = useState(false);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [displayedPremiums, setDisplayedPremiums] = useState<Record<string, number>>({
-    'esb-long': 0,
-    'esb-yue': 0,
-    anyibao: 0,
-  });
+  const [premiums, setPremiums] = useState<PlanResult[]>([]);
 
   const calculate = () => {
-    setIsCalculating(true);
-    setShowResult(false);
+    const familyFactor = FAMILY_FACTORS[familyCount] || 1.0;
+    const results: PlanResult[] = [];
 
-    setTimeout(() => {
-      const discount = getDiscount(familyMembers);
-      const premiums: Record<string, number> = {};
+    // ===== 方案一：舒享+惠享+加享 =====
+    const p1 = ratesData.plan1;
+    let p1Premium = 0;
+    let p1Unavailable = false;
+    if (age > p1.max_age) {
+      p1Unavailable = true;
+    } else {
+      const key = hasSocial
+        ? gender === 'male'
+          ? 'with_social_male'
+          : 'with_social_female'
+        : gender === 'male'
+          ? 'without_social_male'
+          : 'without_social_female';
+      const rateArr = (p1 as any)[key] as number[];
+      p1Premium = Math.round(rateArr[age] * familyFactor);
+    }
 
-      products.forEach((p) => {
-        const base = getPremium(age, hasSocial, p.id);
-        premiums[p.id] = base > 0 ? Math.round(base * discount) : 0;
-      });
+    results.push({
+      key: 'plan1',
+      name: p1.name,
+      description: p1.description,
+      deductible: p1.deductible,
+      renewal: p1.renewal,
+      coverage: p1.coverage,
+      sellingPoint: p1.selling_point,
+      premium: p1Premium,
+      originalPremium: p1Premium / familyFactor,
+      discount: (1 - familyFactor) * 100,
+      isUnavailable: p1Unavailable,
+      tag: '主力推荐',
+    });
 
-      // 数字动画
-      const duration = 800;
-      const steps = 40;
-      let step = 0;
+    // ===== 方案二A：悦享版·计划四 =====
+    const p2A = ratesData.plan2A;
+    const p2ARate = getRangeRate(p2A.with_social_ranges, p2A.without_social_ranges, age, hasSocial);
+    results.push({
+      key: 'plan2A',
+      name: p2A.name,
+      description: p2A.description,
+      deductible: p2A.deductible,
+      renewal: p2A.renewal,
+      coverage: p2A.coverage,
+      sellingPoint: p2A.selling_point,
+      premium: Math.round(p2ARate * familyFactor),
+      originalPremium: p2ARate,
+      discount: (1 - familyFactor) * 100,
+    });
 
-      const timer = setInterval(() => {
-        step++;
-        const progress = step / steps;
-        const easeProgress = 1 - Math.pow(1 - progress, 3);
+    // ===== 方案二B：安医保尊享版·计划一 =====
+    const p2B = ratesData.plan2B;
+    const p2BRate = getRangeRate(p2B.with_social_ranges, p2B.without_social_ranges, age, hasSocial);
+    results.push({
+      key: 'plan2B',
+      name: p2B.name,
+      description: p2B.description,
+      deductible: p2B.deductible,
+      renewal: p2B.renewal,
+      coverage: p2B.coverage,
+      sellingPoint: p2B.selling_point,
+      premium: Math.round(p2BRate * familyFactor),
+      originalPremium: p2BRate,
+      discount: (1 - familyFactor) * 100,
+    });
 
-        const next: Record<string, number> = {};
-        products.forEach((p) => {
-          next[p.id] = Math.round(premiums[p.id] * easeProgress);
-        });
-        setDisplayedPremiums(next);
-
-        if (step >= steps) {
-          clearInterval(timer);
-          setDisplayedPremiums(premiums);
-        }
-      }, duration / steps);
-
-      setShowResult(true);
-      setIsCalculating(false);
-    }, 400);
+    setPremiums(results);
+    setShowResult(true);
   };
 
-  const discount = getDiscount(familyMembers);
-  const comboPremium =
-    displayedPremiums['esb-long'] > 0 && displayedPremiums['anyibao'] > 0
-      ? displayedPremiums['esb-long'] + displayedPremiums['anyibao']
-      : 0;
-
   return (
-    <div className="pt-6">
-      {/* 输入区 */}
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="space-y-6">
+    <div className="grid lg:grid-cols-5 gap-6">
+      {/* 左侧：参数输入 */}
+      <div className="lg:col-span-2 space-y-5">
+        <div className="p-5 rounded-xl bg-slate-800/40 border border-amber-500/10">
+          <h4 className="text-amber-400 font-semibold mb-4 flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            投保信息
+          </h4>
+
           {/* 年龄滑块 */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-[#f1f5f9] text-sm font-medium">
-                被保险人年龄
-              </label>
-              <span className="text-[#d4af37] text-2xl font-bold">
-                {age} <span className="text-sm text-[#94a3b8] font-normal">岁</span>
-              </span>
+          <div className="mb-5">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-slate-300">被保人年龄</span>
+              <span className="text-amber-400 font-bold text-lg">{age} 岁</span>
             </div>
             <input
               type="range"
-              min="0"
-              max="70"
+              min={0}
+              max={70}
               value={age}
               onChange={(e) => setAge(Number(e.target.value))}
-              className="w-full h-2 bg-[#1e293b] rounded-full appearance-none cursor-pointer
-                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
-                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br
-                [&::-webkit-slider-thumb]:from-[#f5d06a] [&::-webkit-slider-thumb]:to-[#d4af37]
-                [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg
-                [&::-webkit-slider-thumb]:shadow-[rgba(212,175,55,0.4)]"
-              style={{
-                background: `linear-gradient(to right, #d4af37 0%, #d4af37 ${(age / 70) * 100}%, #1e293b ${(age / 70) * 100}%, #1e293b 100%)`,
-              }}
+              className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-amber-500"
             />
-            <div className="flex justify-between text-xs text-[#64748b] mt-2">
+            <div className="flex justify-between text-xs text-slate-500 mt-1">
               <span>0岁</span>
-              <span>30岁</span>
-              <span>50岁</span>
+              <span>35岁</span>
               <span>70岁</span>
             </div>
           </div>
 
           {/* 性别选择 */}
-          <div>
-            <label className="text-[#f1f5f9] text-sm font-medium block mb-3">
-              性别
-            </label>
-            <div className="flex gap-3">
-              {(['male', 'female'] as const).map((g) => (
+          <div className="mb-5">
+            <label className="text-sm text-slate-300 mb-2 block">性别</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: 'male', label: '男' },
+                { value: 'female', label: '女' },
+              ].map((item) => (
                 <button
-                  key={g}
-                  onClick={() => setGender(g)}
-                  className={`flex-1 py-3 rounded-xl border font-medium transition-all duration-300 ${
-                    gender === g
-                      ? 'bg-[rgba(212,175,55,0.15)] border-[#d4af37] text-[#d4af37]'
-                      : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(212,175,55,0.3)]'
+                  key={item.value}
+                  onClick={() => setGender(item.value as 'male' | 'female')}
+                  className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all border ${
+                    gender === item.value
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                      : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
                   }`}
                 >
-                  {g === 'male' ? '男' : '女'}
+                  {item.label}
                 </button>
               ))}
             </div>
-            <p className="text-[#64748b] text-xs mt-2">* 性别对保费影响较小，展示用</p>
           </div>
 
           {/* 社保情况 */}
-          <div>
-            <label className="text-[#f1f5f9] text-sm font-medium block mb-3">
-              是否有社保
-            </label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setHasSocial(true)}
-                className={`flex-1 py-3 rounded-xl border font-medium transition-all duration-300 ${
-                  hasSocial
-                    ? 'bg-[rgba(212,175,55,0.15)] border-[#d4af37] text-[#d4af37]'
-                    : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(212,175,55,0.3)]'
-                }`}
-              >
-                有社保
-              </button>
-              <button
-                onClick={() => setHasSocial(false)}
-                className={`flex-1 py-3 rounded-xl border font-medium transition-all duration-300 ${
-                  !hasSocial
-                    ? 'bg-[rgba(212,175,55,0.15)] border-[#d4af37] text-[#d4af37]'
-                    : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(212,175,55,0.3)]'
-                }`}
-              >
-                无社保
-              </button>
-            </div>
-            {hasSocial && (
-              <p className="text-[#34d399] text-xs mt-2">
-                ✓ 有社保保费约为无社保的 44%，更划算
-              </p>
-            )}
-          </div>
-
-          {/* 家庭人数 */}
-          <div>
-            <label className="text-[#f1f5f9] text-sm font-medium block mb-3">
-              家庭参保人数
-            </label>
-            <div className="grid grid-cols-6 gap-2">
-              {[1, 2, 3, 4, 5, 6].map((num) => (
+          <div className="mb-5">
+            <label className="text-sm text-slate-300 mb-2 block">是否有社保</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: true, label: '有社保' },
+                { value: false, label: '无社保' },
+              ].map((item) => (
                 <button
-                  key={num}
-                  onClick={() => setFamilyMembers(num)}
-                  className={`py-3 rounded-xl border text-sm font-medium transition-all duration-300 ${
-                    familyMembers === num
-                      ? 'bg-[rgba(212,175,55,0.15)] border-[#d4af37] text-[#d4af37]'
-                      : 'bg-[rgba(15,23,42,0.6)] border-[rgba(212,175,55,0.15)] text-[#94a3b8] hover:border-[rgba(212,175,55,0.3)]'
+                  key={String(item.value)}
+                  onClick={() => setHasSocial(item.value)}
+                  className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all border ${
+                    hasSocial === item.value
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                      : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
                   }`}
                 >
-                  {num}人
+                  {item.label}
                 </button>
               ))}
             </div>
-            <p className="text-[#94a3b8] text-xs mt-2">
-              💡 家庭投保：2人95折、3人9折、4-6人85折（当前：{Math.round((1 - discount) * 100)}%优惠）
+          </div>
+
+          {/* 家庭人数 */}
+          <div className="mb-5">
+            <label className="text-sm text-slate-300 mb-2 block">
+              家庭参保人数
+              <span className="text-slate-500 ml-2 text-xs">
+                {familyCount >= 2 ? `享${FAMILY_FACTORS[familyCount] === 0.95 ? '95折' : FAMILY_FACTORS[familyCount] === 0.9 ? '9折' : '85折'}` : '2人起享家庭折扣'}
+              </span>
+            </label>
+            <div className="grid grid-cols-6 gap-1.5">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setFamilyCount(n)}
+                  className={`py-2 rounded-lg text-sm font-medium transition-all border ${
+                    familyCount === n
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                      : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
+                  }`}
+                >
+                  {n}人
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              💡 家庭费率：2人95折 / 3人9折 / 4人及以上85折
             </p>
           </div>
 
           <button
             onClick={calculate}
-            disabled={isCalculating}
-            className="btn-gold w-full text-base !py-4"
+            className="w-full py-3.5 rounded-xl font-semibold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
           >
-            {isCalculating ? '报价中...' : '获取三家产品报价'}
+            <Shield className="w-5 h-5" />
+            获取三家产品报价
           </button>
         </div>
+      </div>
 
-        {/* 结果区 */}
-        <div className="space-y-4">
-          {showResult ? (
-            <>
-              {/* 三个产品卡片 */}
-              {products.map((product) => {
-                const premium = displayedPremiums[product.id];
-                const notSupported = premium === 0 && showResult;
+      {/* 右侧：结果展示 */}
+      <div className="lg:col-span-3">
+        {!showResult ? (
+          <div className="h-full flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-700 rounded-2xl">
+            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+              <Shield className="w-8 h-8 text-slate-500" />
+            </div>
+            <h4 className="text-slate-300 font-medium mb-2">等待获取报价</h4>
+            <p className="text-slate-500 text-sm text-center">
+              调整左侧参数，点击「获取三家产品报价」<br />
+              一次对比三款平安医疗险方案
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {premiums.map((plan) => (
+              <PlanCard key={plan.key} plan={plan} />
+            ))}
 
-                return (
-                  <div
-                    key={product.id}
-                    className="relative rounded-2xl border bg-[rgba(15,23,42,0.6)] overflow-hidden transition-all duration-500 hover:bg-[rgba(15,23,42,0.9)]"
-                    style={{ borderColor: `${product.color}30` }}
-                  >
-                    <div
-                      className="absolute top-0 left-0 right-0 h-0.5"
-                      style={{ background: `linear-gradient(90deg, transparent, ${product.color}60, transparent)` }}
-                    />
-
-                    <div className="p-5">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h4
-                            className="font-bold text-[#f1f5f9] text-base leading-tight"
-                            style={{ color: product.color }}
-                          >
-                            {product.name}
-                          </h4>
-                          <p className="text-[#94a3b8] text-xs mt-1">
-                            {product.coverage}
-                          </p>
-                        </div>
-
-                        {notSupported ? (
-                          <div className="flex-shrink-0 px-3 py-1 rounded bg-[rgba(100,116,139,0.15)] text-[#64748b] text-xs">
-                            不支持
-                          </div>
-                        ) : (
-                          <div className="text-right flex-shrink-0">
-                            <div className="flex items-baseline gap-0.5">
-                              <span className="text-xs" style={{ color: product.color }}>¥</span>
-                              <span className="text-2xl font-bold" style={{ color: product.color }}>
-                                {premium.toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-[#64748b] text-xs">元/年</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 mb-3">
-                        <span
-                          className="px-2 py-0.5 rounded-full text-xs font-medium"
-                          style={{ background: `${product.color}15`, color: product.color, border: `1px solid ${product.color}30` }}
-                        >
-                          {product.renewLabel}
+            {/* 推荐组合 */}
+            {!premiums[0].isUnavailable && (
+              <div className="mt-6 p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                    <Heart className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-amber-400 font-bold mb-1">推荐组合：方案一 + 方案二B</h4>
+                    <p className="text-slate-300 text-sm mb-3">
+                      方案一打底20年保证续保 + 方案二B补充重疾特需部/海外特药，实现 0免赔全覆盖
+                    </p>
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                      <span className="text-slate-400">
+                        合计年保费：
+                        <span className="text-amber-400 font-bold text-lg ml-1">
+                          ¥{formatMoney(premiums[0].premium + premiums[2].premium)}
                         </span>
-                        <span className="text-[#64748b] text-xs">{product.renewDesc}</span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {product.highlights.map((h) => (
-                          <span
-                            key={h}
-                            className="px-2 py-1 rounded text-[#94a3b8] text-xs bg-[rgba(255,255,255,0.04)]"
-                          >
-                            ✓ {h}
-                          </span>
-                        ))}
-                      </div>
+                      </span>
+                      <span className="text-slate-500">/ 年</span>
                     </div>
                   </div>
-                );
-              })}
-
-              {/* 推荐组合 */}
-              {displayedPremiums['esb-long'] > 0 && displayedPremiums['anyibao'] > 0 && (
-                <div className="relative rounded-2xl border border-[rgba(212,175,55,0.4)] bg-gradient-to-br from-[rgba(212,175,55,0.1)] to-[rgba(52,211,153,0.05)] p-5 overflow-hidden">
-                  <div className="absolute top-2 right-3">
-                    <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-[#d4af37] to-[#34d399] text-[#0a0e1a] text-xs font-bold">
-                      推荐组合
-                    </span>
-                  </div>
-
-                  <div className="mb-3">
-                    <p className="text-[#f1f5f9] font-bold text-base">
-                      e生保长期 + 安医保 = 0免赔全覆盖
-                    </p>
-                    <p className="text-[#94a3b8] text-xs mt-1">
-                      大额风险靠e生保扛，小额住院安医保报，0免赔更省心
-                    </p>
-                  </div>
-
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[#d4af37] text-sm">合计 ¥</span>
-                    <span className="text-3xl font-black gold-gradient-text">
-                      {comboPremium.toLocaleString()}
-                    </span>
-                    <span className="text-[#94a3b8] text-sm">/年</span>
-                  </div>
                 </div>
-              )}
-
-              <a href="#contact" className="btn-gold w-full text-sm !py-3">
-                联系我获取详细方案
-              </a>
-
-              <p className="text-[#64748b] text-xs text-center">
-                * 以上为标准费率参考，实际保费以核保结果为准
-              </p>
-            </>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-[rgba(212,175,55,0.2)] bg-[rgba(15,23,42,0.3)] p-8 flex flex-col items-center justify-center min-h-[400px]">
-              <div className="w-20 h-20 rounded-full bg-[rgba(212,175,55,0.08)] flex items-center justify-center mb-4">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <path d="M9 12l2 2 4-4" />
-                </svg>
               </div>
-              <p className="text-[#94a3b8] text-center">
-                调整左侧参数<br />
-                点击「获取三家产品报价」<br />
-                一次对比三款平安医疗险
-              </p>
+            )}
+
+            {/* CTA */}
+            <div className="mt-4 flex justify-center">
+              <a
+                href="#contact"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-amber-500/50 text-amber-400 font-medium hover:bg-amber-500/10 transition-all"
+              >
+                联系我获取详细方案
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </a>
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 区间费率查找
+function getRangeRate(
+  withSocialRanges: Array<{ min: number; max: number; rate: number }>,
+  withoutSocialRanges: Array<{ min: number; max: number; rate: number }>,
+  age: number,
+  hasSocial: boolean,
+): number {
+  const ranges = hasSocial ? withSocialRanges : withoutSocialRanges;
+  const found = ranges.find((r) => age >= r.min && age <= r.max);
+  return found ? found.rate : ranges[ranges.length - 1].rate;
+}
+
+function PlanCard({ plan }: { plan: PlanResult }) {
+  const animatedPremium = useAnimatedNumber(plan.premium);
+  const isMainPlan = plan.key === 'plan1';
+
+  if (plan.isUnavailable) {
+    return (
+      <div className="p-5 rounded-2xl bg-slate-800/30 border border-slate-700/50 opacity-60 relative overflow-hidden">
+        <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-700 text-slate-400 text-xs font-medium">
+          超龄不可投
+        </div>
+        <h4 className="text-slate-400 font-bold text-lg mb-1 pr-24">{plan.name}</h4>
+        <p className="text-slate-500 text-sm mb-4">{plan.description}</p>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p className="text-slate-500 text-xs">免赔额</p>
+            <p className="text-slate-400">{plan.deductible.split('（')[0]}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs">续保条件</p>
+            <p className="text-slate-400">{plan.renewal.split('（')[0]}</p>
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-slate-700/50">
+          <p className="text-slate-500 text-xs">该方案最高投保年龄55岁</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`p-5 rounded-2xl border transition-all hover:scale-[1.01] relative overflow-hidden ${
+        isMainPlan
+          ? 'bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/40 shadow-lg shadow-amber-500/10'
+          : 'bg-slate-800/50 border-slate-700/60 hover:border-amber-500/30'
+      }`}
+    >
+      {plan.tag && (
+        <div className="absolute top-0 right-0">
+          <div className="px-3 py-1 bg-gradient-to-l from-amber-500 to-yellow-500 text-slate-900 text-xs font-bold rounded-bl-lg">
+            {plan.tag}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex-1">
+          <h4 className={`font-bold text-lg mb-0.5 ${isMainPlan ? 'text-amber-400' : 'text-white'}`}>
+            {plan.name}
+          </h4>
+          <p className="text-slate-400 text-xs">{plan.description}</p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="text-slate-500 text-xs">年缴保费</p>
+          <p className={`text-2xl font-bold ${isMainPlan ? 'text-amber-400' : 'text-white'}`}>
+            ¥{formatMoney(animatedPremium)}
+          </p>
+          {plan.discount > 0 && (
+            <p className="text-green-400 text-xs">已省 ¥{formatMoney(plan.originalPremium * plan.discount / 100)}</p>
           )}
         </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+        <div className="p-2 rounded-lg bg-slate-900/40">
+          <p className="text-slate-500 mb-0.5">免赔额</p>
+          <p className="text-slate-300 leading-tight line-clamp-2">{plan.deductible.split('（')[0]}</p>
+        </div>
+        <div className="p-2 rounded-lg bg-slate-900/40">
+          <p className="text-slate-500 mb-0.5">续保</p>
+          <p className={`leading-tight ${plan.renewal.includes('20年') ? 'text-green-400' : 'text-orange-400'}`}>
+            {plan.renewal.split('（')[0]}
+          </p>
+        </div>
+        <div className="p-2 rounded-lg bg-slate-900/40">
+          <p className="text-slate-500 mb-0.5">保额</p>
+          <p className="text-slate-300 leading-tight">{plan.coverage}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-amber-400">✨</span>
+        <span className="text-slate-400">{plan.sellingPoint}</span>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MedicalInsuranceCalculator } from './tools/MedicalInsuranceCalculator';
+import MedicalInsuranceCalculator from './tools/MedicalInsuranceCalculator';
 import { PensionCalculator } from './tools/PensionCalculator';
 import { AnnuityReverseCalculator } from './tools/AnnuityReverseCalculator';
 import { InsurancePlanGenerator } from './tools/InsurancePlanGenerator';
