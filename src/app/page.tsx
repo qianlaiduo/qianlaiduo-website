@@ -1,35 +1,35 @@
-import type { Metadata } from 'next';
-import Image from 'next/image';
+'use client';
 
-export const metadata: Metadata = {
-  title: '扣子编程 - AI 开发伙伴',
-  description: '扣子编程，你的 AI 开发伙伴已就位',
-};
+import { useEffect } from 'react';
+import { Navbar } from '@/components/sections/Navbar';
+import { Hero } from '@/components/sections/Hero';
+import { About } from '@/components/sections/About';
+import { Services } from '@/components/sections/Services';
+import { Advantages } from '@/components/sections/Advantages';
+import { Contact } from '@/components/sections/Contact';
+import { Footer } from '@/components/sections/Footer';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 export default function Home() {
+  useScrollReveal();
+
+  // 确保首屏元素在加载后立即显示
+  useEffect(() => {
+    const heroReveals = document.querySelectorAll('#hero .reveal, #hero .reveal-scale');
+    heroReveals.forEach((el) => {
+      setTimeout(() => el.classList.add('visible'), 100);
+    });
+  }, []);
+
   return (
-    <div className="flex h-full items-center justify-center bg-background text-foreground transition-colors duration-300 dark:bg-background dark:text-foreground overflow-hidden min-h-screen">
-      {/* 主容器 */}
-      <main className="flex w-full h-full max-w-3xl flex-col items-center justify-center px-16 py-32 sm:items-center">
-        <div className="flex flex-col items-center justify-between gap-4">
-           <Image
-            src="https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze-coding/icon/coze-coding.gif"
-            alt="扣子编程 Logo"
-            width={156}
-            height={130}
-          />
-          <div>
-            <div className="flex flex-col items-center gap-2 text-center sm:items-center sm:text-center">
-              <h1 className="max-w-xl text-base font-semibold leading-tight tracking-tight text-foreground dark:text-foreground">
-                应用开发中
-              </h1>
-              <p className="max-w-2xl text-sm leading-8 text-muted-foreground dark:text-muted-foreground">
-                请稍后，页面即将呈现
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+    <main className="relative min-h-screen">
+      <Navbar />
+      <Hero />
+      <About />
+      <Services />
+      <Advantages />
+      <Contact />
+      <Footer />
+    </main>
   );
 }

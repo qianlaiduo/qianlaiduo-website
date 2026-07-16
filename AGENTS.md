@@ -40,6 +40,43 @@
 - 安装所有依赖：`pnpm install`
 - 移除依赖：`pnpm remove <package>`
 
+## 页面结构
+
+这是一个**单页滚动式个人品牌展示网站**（钱来多 - AI赋能保险），所有页面组件位于 `src/components/sections/`：
+
+| 组件 | 路径 | 说明 |
+|------|------|------|
+| Navbar | `components/sections/Navbar.tsx` | 顶部导航栏（透明→毛玻璃滚动效果，移动端菜单） |
+| Hero | `components/sections/Hero.tsx` | 首屏大标题区（粒子背景、数据亮点、CTA按钮） |
+| About | `components/sections/About.tsx` | 关于我（头像、个人介绍、标签、数据统计） |
+| Services | `components/sections/Services.tsx` | 四大服务卡片（自媒体IP/AI培训/保险服务/企业赋能） |
+| Advantages | `components/sections/Advantages.tsx` | 三大优势（行业深度/技术前沿/实战导向） |
+| Contact | `components/sections/Contact.tsx` | 联系信息（电话/微信/公司地址/CTA） |
+| Footer | `components/sections/Footer.tsx` | 页脚（品牌/导航/社交图标/版权） |
+
+## 自定义组件与Hooks
+
+- `components/ui-custom/ParticleBackground.tsx` — Canvas 粒子动效背景（金色粒子+连线）
+- `hooks/useScrollReveal.ts` — 滚动渐入动画 Hook（基于 IntersectionObserver）
+
+## 设计系统
+
+- **主题**：深色商务风（墨黑 #0a0e1a + 深蓝 #0f172a + 金色 #d4af37 点缀）
+- **字体**：Noto Sans SC（思源黑体），已在 `globals.css` 中通过 Google Fonts CN 引入
+- **动效**：
+  - 滚动渐入：`.reveal` / `.reveal-left` / `.reveal-right` / `.reveal-scale` 类名 + `visible` 触发
+  - 卡片悬停：上浮 + 金色边框增强
+  - 按钮悬停：金色光晕 + 光扫动画
+  - 平滑滚动：`scroll-behavior: smooth`
+- **详细设计规范**见 `DESIGN.md`
+
+## 构建和测试命令
+
+- 开发：`pnpm dev`
+- 构建：`pnpm build`
+- Lint：`pnpm lint`
+- 类型检查：`pnpm ts-check`
+
 ## 开发规范
 
 ### 编码规范
