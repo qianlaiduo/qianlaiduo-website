@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-// 音频URL占位 — 替换此处的URL为正式音频文件
-// 推荐使用 mp3 格式，建议长度 3-5 分钟的纯音乐
-// 例: '/music/tiangaodihou.mp3'
-const AUDIO_URL = '/music-placeholder.mp3';
+// 音频源：信乐团「天高地厚 - 信乐团」网易云音乐外链
+// 注意：第三方外链稳定性不保证，建议后续下载到本地 public/music/ 目录
+const AUDIO_URL = 'https://music.163.com/song/media/outer/url?id=387583';
 
 export function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -14,10 +13,13 @@ export function MusicPlayer() {
   const [showVolume, setShowVolume] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  // 初始化音量
+  // 初始化音量、跨域设置
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
+      // @ts-expect-error referrerPolicy 在类型定义中可能不存在，但浏览器支持
+      audioRef.current.referrerPolicy = 'no-referrer';
+      audioRef.current.crossOrigin = 'anonymous';
     }
   }, []);
 
@@ -75,10 +77,12 @@ export function MusicPlayer() {
   return (
     <>
       {/* 隐藏的音频元素 */}
-      <audio ref={audioRef} src={AUDIO_URL} loop preload="metadata">
-        {/* 如果浏览器不支持音频格式的提示 */}
-        您的浏览器不支持 audio 元素。
-      </audio>
+      <audio
+        ref={audioRef}
+        src={AUDIO_URL}
+        loop
+        preload="metadata"
+      />
 
       {/* 播放器主体 - 固定右下角 */}
       <div className="fixed bottom-6 right-6 z-50">
