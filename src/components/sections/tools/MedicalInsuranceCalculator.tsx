@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Shield, Activity, Heart } from 'lucide-react';
+import { Shield, Activity, HeartPulse, Sparkles, ChevronRight, Phone } from 'lucide-react';
 import ratesData from '@/data/medical_rates_correct.json';
 
-// 家庭费率因子
 const FAMILY_FACTORS: Record<number, number> = {
   1: 1.0,
   2: 0.95,
@@ -17,9 +16,12 @@ const FAMILY_FACTORS: Record<number, number> = {
 interface PlanResult {
   key: string;
   name: string;
-  description: string;
+  subtitle: string;
+  composition: string;
   deductible: string;
+  deductibleDesc: string;
   renewal: string;
+  renewalGuaranteed: boolean;
   coverage: string;
   sellingPoint: string;
   premium: number;
@@ -48,7 +50,6 @@ function useAnimatedNumber(target: number, duration = 1200): number {
       if (startTimeRef.current === null) startTimeRef.current = timestamp;
       const elapsed = timestamp - startTimeRef.current;
       const progress = Math.min(elapsed / duration, 1);
-      // easeOutCubic
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = startValueRef.current + (target - startValueRef.current) * eased;
       setValue(current);
@@ -72,6 +73,145 @@ function formatMoney(n: number): string {
   return Math.round(n).toLocaleString('zh-CN');
 }
 
+// 按区间查找费率（方案二A/二B）
+function getRangeRate(
+  ranges: Array<{ min: number; max: number; rate: number }>,
+  age: number
+): number {
+  const found = ranges.find(r => age >= r.min && age <= r.max);
+  return found ? found.rate : 0;
+}
+
+function PremiumCard({ plan, index }: { plan: PlanResult; index: number }) {
+  const animatedPremium = useAnimatedNumber(plan.premium, 1200 + index * 200);
+
+  const getIcon = () => {
+    if (plan.key === 'plan1') return <Shield className="w-6 h-6" />;
+    if (plan.key === 'plan2A') return <Activity className="w-6 h-6" />;
+    return <HeartPulse className="w-6 h-6" />;
+  };
+
+  return (
+    <div
+      className={`relative rounded-2xl border p-5 transition-all duration-300 ${
+        plan.isUnavailable
+          ? 'bg-slate-900/40 border-slate-700/50 opacity-60 grayscale'
+          : plan.key === 'plan1'
+            ? 'bg-gradient-to-b from-amber-950/30 to-slate-900/60 border-amber-500/30 hover:border-amber-400/60 hover:-translate-y-1'
+            : 'bg-slate-900/60 border-slate-700/60 hover:border-amber-500/40 hover:-translate-y-1'
+      }`}
+      style={{ animationDelay: `${index * 150}ms` }}
+    >
+      {/* 标签 */}
+      {plan.tag && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 text-xs font-bold rounded-full shadow-lg">
+          {plan.tag}
+        </div>
+      )}
+
+      {/* 头部 */}
+      <div className="flex items-center gap-3 mb-4 pt-1">
+        <div
+          className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+            plan.isUnavailable
+              ? 'bg-slate-800 text-slate-500'
+              : 'bg-gradient-to-br from-amber-400/20 to-amber-600/10 text-amber-400'
+          }`}
+        >
+          {getIcon()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className={`font-bold text-base truncate ${plan.isUnavailable ? 'text-slate-500' : 'text-white'}`}>
+            {plan.name}
+          </h4>
+          <p className={`text-xs truncate ${plan.isUnavailable ? 'text-slate-600' : 'text-slate-400'}`}>
+            {plan.subtitle}
+          </p>
+        </div>
+      </div>
+
+      {/* 保费金额 */}
+      <div className="mb-4 pb-4 border-b border-slate-700/50">
+        {plan.isUnavailable ? (
+          <div className="py-3 text-center">
+            <p className="text-slate-500 text-lg font-bold">超龄不可投</p>
+            <p className="text-slate-600 text-xs mt-1">最高投保年龄 55 岁</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-baseline gap-1">
+              <span className={`text-xs ${plan.isUnavailable ? 'text-slate-600' : 'text-amber-400'}`}>¥</span>
+              <span
+                className={`text-3xl font-bold tracking-tight ${
+                  plan.isUnavailable ? 'text-slate-600' : 'text-amber-400'
+                }`}
+              >
+                {formatMoney(animatedPremium)}
+              </span>
+              <span className={`text-xs ${plan.isUnavailable ? 'text-slate-600' : 'text-slate-400'}`}>/年</span>
+            </div>
+            {plan.discount > 0 && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-xs text-slate-500 line-through">
+                  ¥{formatMoney(plan.originalPremium)}
+                </span>
+                <span className="text-xs px-1.5 py-0.5 bg-emerald-500/15 text-emerald-400 rounded font-medium">
+                  省{formatMoney(plan.originalPremium - plan.premium)}元
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* 详情列表 */}
+      <div className="space-y-2.5 text-sm">
+        <div className="flex justify-between items-start gap-2">
+          <span className="text-slate-500 text-xs shrink-0">组成</span>
+          <span className={`text-right text-xs leading-relaxed ${plan.isUnavailable ? 'text-slate-600' : 'text-slate-300'}`}>
+            {plan.composition}
+          </span>
+        </div>
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-slate-500 text-xs shrink-0">免赔额</span>
+          <span className={`text-xs font-medium ${plan.isUnavailable ? 'text-slate-600' : 'text-slate-200'}`}>
+            {plan.deductible}
+          </span>
+        </div>
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-slate-500 text-xs shrink-0">续保</span>
+          <span
+            className={`text-xs font-medium flex items-center gap-1 ${
+              plan.isUnavailable
+                ? 'text-slate-600'
+                : plan.renewalGuaranteed
+                  ? 'text-emerald-400'
+                  : 'text-amber-400'
+            }`}
+          >
+            {plan.renewalGuaranteed ? '✓ ' : '○ '}
+            {plan.renewal}
+          </span>
+        </div>
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-slate-500 text-xs shrink-0">保额</span>
+          <span className={`text-xs font-medium ${plan.isUnavailable ? 'text-slate-600' : 'text-slate-200'}`}>
+            {plan.coverage}
+          </span>
+        </div>
+        <div className="pt-2 border-t border-slate-800/60">
+          <div className="flex items-start gap-1.5">
+            <Sparkles className={`w-3 h-3 mt-0.5 shrink-0 ${plan.isUnavailable ? 'text-slate-600' : 'text-amber-400'}`} />
+            <span className={`text-xs leading-relaxed ${plan.isUnavailable ? 'text-slate-600' : 'text-amber-200/80'}`}>
+              {plan.sellingPoint}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MedicalInsuranceCalculator() {
   const [age, setAge] = useState(35);
   const [gender, setGender] = useState<'male' | 'female'>('male');
@@ -88,7 +228,7 @@ export default function MedicalInsuranceCalculator() {
     const p1 = ratesData.plan1;
     let p1Premium = 0;
     let p1Unavailable = false;
-    if (age > p1.max_age) {
+    if (age > p1.maxAge) {
       p1Unavailable = true;
     } else {
       const key = hasSocial
@@ -98,18 +238,22 @@ export default function MedicalInsuranceCalculator() {
         : gender === 'male'
           ? 'without_social_male'
           : 'without_social_female';
-      const rateArr = (p1 as any)[key] as number[];
-      p1Premium = Math.round(rateArr[age] * familyFactor);
+      const rateMap = (p1.rates as Record<string, Record<string, number>>)[key];
+      const baseRate = rateMap ? rateMap[String(age)] : 0;
+      p1Premium = Math.round(baseRate * familyFactor);
     }
 
     results.push({
       key: 'plan1',
       name: p1.name,
-      description: p1.description,
+      subtitle: p1.subtitle,
+      composition: p1.composition,
       deductible: p1.deductible,
+      deductibleDesc: p1.deductibleDesc,
       renewal: p1.renewal,
+      renewalGuaranteed: p1.renewalGuaranteed,
       coverage: p1.coverage,
-      sellingPoint: p1.selling_point,
+      sellingPoint: p1.sellingPoint,
       premium: p1Premium,
       originalPremium: p1Premium / familyFactor,
       discount: (1 - familyFactor) * 100,
@@ -118,34 +262,46 @@ export default function MedicalInsuranceCalculator() {
     });
 
     // ===== 方案二A：悦享版·计划四 =====
-    const p2A = ratesData.plan2A;
-    const p2ARate = getRangeRate(p2A.with_social_ranges, p2A.without_social_ranges, age, hasSocial);
+    const p2A = ratesData.plan2a;
+    const p2ABase = getRangeRate(
+      hasSocial ? p2A.rates.with_social : p2A.rates.without_social,
+      age
+    );
     results.push({
       key: 'plan2A',
       name: p2A.name,
-      description: p2A.description,
+      subtitle: p2A.subtitle,
+      composition: p2A.composition,
       deductible: p2A.deductible,
+      deductibleDesc: p2A.deductibleDesc,
       renewal: p2A.renewal,
+      renewalGuaranteed: p2A.renewalGuaranteed,
       coverage: p2A.coverage,
-      sellingPoint: p2A.selling_point,
-      premium: Math.round(p2ARate * familyFactor),
-      originalPremium: p2ARate,
+      sellingPoint: p2A.sellingPoint,
+      premium: Math.round(p2ABase * familyFactor),
+      originalPremium: p2ABase,
       discount: (1 - familyFactor) * 100,
     });
 
     // ===== 方案二B：安医保尊享版·计划一 =====
-    const p2B = ratesData.plan2B;
-    const p2BRate = getRangeRate(p2B.with_social_ranges, p2B.without_social_ranges, age, hasSocial);
+    const p2B = ratesData.plan2b;
+    const p2BBase = getRangeRate(
+      hasSocial ? p2B.rates.with_social : p2B.rates.without_social,
+      age
+    );
     results.push({
       key: 'plan2B',
       name: p2B.name,
-      description: p2B.description,
+      subtitle: p2B.subtitle,
+      composition: p2B.composition,
       deductible: p2B.deductible,
+      deductibleDesc: p2B.deductibleDesc,
       renewal: p2B.renewal,
+      renewalGuaranteed: p2B.renewalGuaranteed,
       coverage: p2B.coverage,
-      sellingPoint: p2B.selling_point,
-      premium: Math.round(p2BRate * familyFactor),
-      originalPremium: p2BRate,
+      sellingPoint: p2B.sellingPoint,
+      premium: Math.round(p2BBase * familyFactor),
+      originalPremium: p2BBase,
       discount: (1 - familyFactor) * 100,
     });
 
@@ -153,20 +309,24 @@ export default function MedicalInsuranceCalculator() {
     setShowResult(true);
   };
 
+  const scrollToContact = () => {
+    const el = document.getElementById('contact');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div className="grid lg:grid-cols-5 gap-6">
-      {/* 左侧：参数输入 */}
-      <div className="lg:col-span-2 space-y-5">
-        <div className="p-5 rounded-xl bg-slate-800/40 border border-amber-500/10">
-          <h4 className="text-amber-400 font-semibold mb-4 flex items-center gap-2">
-            <Activity className="w-4 h-4" />
-            投保信息
+    <div className="space-y-6">
+      {/* 输入参数区 */}
+      <div className="grid md:grid-cols-2 gap-5">
+        <div className="bg-slate-900/60 rounded-xl p-5 border border-slate-800/60 space-y-4">
+          <h4 className="text-amber-400 font-semibold text-sm flex items-center gap-2">
+            <Shield className="w-4 h-4" /> 基本信息
           </h4>
 
           {/* 年龄滑块 */}
-          <div className="mb-5">
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-300">被保人年龄</span>
+          <div>
+            <div className="flex justify-between mb-2">
+              <label className="text-slate-300 text-sm">投保年龄</label>
               <span className="text-amber-400 font-bold text-lg">{age} 岁</span>
             </div>
             <input
@@ -174,8 +334,8 @@ export default function MedicalInsuranceCalculator() {
               min={0}
               max={70}
               value={age}
-              onChange={(e) => setAge(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-amber-500"
+              onChange={e => setAge(Number(e.target.value))}
+              className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
             />
             <div className="flex justify-between text-xs text-slate-500 mt-1">
               <span>0岁</span>
@@ -185,249 +345,182 @@ export default function MedicalInsuranceCalculator() {
           </div>
 
           {/* 性别选择 */}
-          <div className="mb-5">
-            <label className="text-sm text-slate-300 mb-2 block">性别</label>
+          <div>
+            <label className="text-slate-300 text-sm block mb-2">性别</label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { value: 'male', label: '男' },
                 { value: 'female', label: '女' },
-              ].map((item) => (
+              ].map(opt => (
                 <button
-                  key={item.value}
-                  onClick={() => setGender(item.value as 'male' | 'female')}
-                  className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all border ${
-                    gender === item.value
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                      : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
+                  key={opt.value}
+                  onClick={() => setGender(opt.value as 'male' | 'female')}
+                  className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                    gender === opt.value
+                      ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20'
+                      : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/60'
                   }`}
                 >
-                  {item.label}
+                  {opt.label}
                 </button>
               ))}
             </div>
           </div>
 
           {/* 社保情况 */}
-          <div className="mb-5">
-            <label className="text-sm text-slate-300 mb-2 block">是否有社保</label>
+          <div>
+            <label className="text-slate-300 text-sm block mb-2">社保情况</label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { value: true, label: '有社保' },
                 { value: false, label: '无社保' },
-              ].map((item) => (
+              ].map(opt => (
                 <button
-                  key={String(item.value)}
-                  onClick={() => setHasSocial(item.value)}
-                  className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all border ${
-                    hasSocial === item.value
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                      : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
+                  key={String(opt.value)}
+                  onClick={() => setHasSocial(opt.value)}
+                  className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+                    hasSocial === opt.value
+                      ? 'bg-gradient-to-r from-sky-500 to-cyan-400 text-slate-900 shadow-lg shadow-sky-500/20'
+                      : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/60'
                   }`}
                 >
-                  {item.label}
+                  {opt.label}
                 </button>
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="bg-slate-900/60 rounded-xl p-5 border border-slate-800/60 space-y-4">
+          <h4 className="text-amber-400 font-semibold text-sm flex items-center gap-2">
+            <Activity className="w-4 h-4" /> 家庭参保
+          </h4>
 
           {/* 家庭人数 */}
-          <div className="mb-5">
-            <label className="text-sm text-slate-300 mb-2 block">
-              家庭参保人数
-              <span className="text-slate-500 ml-2 text-xs">
-                {familyCount >= 2 ? `享${FAMILY_FACTORS[familyCount] === 0.95 ? '95折' : FAMILY_FACTORS[familyCount] === 0.9 ? '9折' : '85折'}` : '2人起享家庭折扣'}
-              </span>
-            </label>
-            <div className="grid grid-cols-6 gap-1.5">
-              {[1, 2, 3, 4, 5, 6].map((n) => (
+          <div>
+            <label className="text-slate-300 text-sm block mb-2">家庭成员参保人数</label>
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map(n => (
                 <button
                   key={n}
                   onClick={() => setFamilyCount(n)}
-                  className={`py-2 rounded-lg text-sm font-medium transition-all border ${
+                  className={`py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
                     familyCount === n
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                      : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-500'
+                      ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20'
+                      : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700/60'
                   }`}
                 >
                   {n}人
                 </button>
               ))}
             </div>
-            <p className="text-xs text-slate-500 mt-2">
-              💡 家庭费率：2人95折 / 3人9折 / 4人及以上85折
-            </p>
+            {familyCount >= 4 && (
+              <p className="text-xs text-emerald-400 mt-2">✓ 4人及以上享 85 折家庭费率</p>
+            )}
           </div>
 
+          {/* 家庭费率提示 */}
+          <div className="bg-amber-500/5 rounded-lg p-4 border border-amber-500/10">
+            <p className="text-amber-300 text-sm font-medium mb-2">家庭费率优惠</p>
+            <div className="grid grid-cols-4 gap-1 text-xs">
+              <div className="text-center">
+                <p className="text-slate-400">1人</p>
+                <p className="text-white font-semibold">原价</p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400">2人</p>
+                <p className={`font-semibold ${familyCount === 2 ? 'text-amber-400' : 'text-slate-300'}`}>
+                  95折
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400">3人</p>
+                <p className={`font-semibold ${familyCount === 3 ? 'text-amber-400' : 'text-slate-300'}`}>
+                  9折
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400">4人+</p>
+                <p className={`font-semibold ${familyCount >= 4 ? 'text-amber-400' : 'text-slate-300'}`}>
+                  85折
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 报价按钮 */}
           <button
             onClick={calculate}
-            className="w-full py-3.5 rounded-xl font-semibold text-slate-900 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-900 font-bold rounded-xl hover:shadow-xl hover:shadow-amber-500/25 hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group"
           >
-            <Shield className="w-5 h-5" />
-            获取三家产品报价
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              <Shield className="w-4 h-4" />
+              获取三家产品报价
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
           </button>
         </div>
       </div>
 
-      {/* 右侧：结果展示 */}
-      <div className="lg:col-span-3">
-        {!showResult ? (
-          <div className="h-full flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-700 rounded-2xl">
-            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-              <Shield className="w-8 h-8 text-slate-500" />
-            </div>
-            <h4 className="text-slate-300 font-medium mb-2">等待获取报价</h4>
-            <p className="text-slate-500 text-sm text-center">
-              调整左侧参数，点击「获取三家产品报价」<br />
-              一次对比三款平安医疗险方案
-            </p>
+      {/* 结果展示区 */}
+      {!showResult ? (
+        <div className="border-2 border-dashed border-slate-700/60 rounded-2xl p-12 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/60 flex items-center justify-center">
+            <Shield className="w-8 h-8 text-slate-600" />
           </div>
-        ) : (
-          <div className="space-y-4">
-            {premiums.map((plan) => (
-              <PlanCard key={plan.key} plan={plan} />
+          <p className="text-slate-400">调整上方参数，点击「获取三家产品报价」</p>
+          <p className="text-slate-500 text-sm mt-1">一次对比三款平安医疗险，找到最适合你的方案</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <div className="grid md:grid-cols-3 gap-4">
+            {premiums.map((plan, i) => (
+              <PremiumCard key={plan.key} plan={plan} index={i} />
             ))}
+          </div>
 
-            {/* 推荐组合 */}
-            {!premiums[0].isUnavailable && (
-              <div className="mt-6 p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                    <Heart className="w-5 h-5 text-amber-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-amber-400 font-bold mb-1">推荐组合：方案一 + 方案二B</h4>
-                    <p className="text-slate-300 text-sm mb-3">
-                      方案一打底20年保证续保 + 方案二B补充重疾特需部/海外特药，实现 0免赔全覆盖
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <span className="text-slate-400">
-                        合计年保费：
-                        <span className="text-amber-400 font-bold text-lg ml-1">
-                          ¥{formatMoney(premiums[0].premium + premiums[2].premium)}
-                        </span>
-                      </span>
-                      <span className="text-slate-500">/ 年</span>
-                    </div>
-                  </div>
+          {/* 推荐组合 */}
+          {!premiums[0].isUnavailable && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-950/50 via-amber-900/30 to-amber-950/50 border border-amber-500/20 p-6">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <span className="px-4 py-1 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 text-xs font-bold rounded-full shadow-lg">
+                  💎 推荐组合
+                </span>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6 items-center">
+                <div className="md:col-span-2">
+                  <h4 className="text-xl font-bold text-white mb-2 mt-2">
+                    方案一 + 方案二B = 0免赔全覆盖
+                  </h4>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    舒享+惠享+加享打底（20年保证续保 + 0免赔），叠加安医保尊享版补充重疾特需部 + 海外特药76种保障，
+                    打造全方位医疗保障体系，无惧大病风险。
+                  </p>
+                </div>
+                <div className="text-center md:text-right">
+                  <p className="text-slate-400 text-sm">组合年缴保费约</p>
+                  <p className="text-3xl font-bold text-amber-400 mt-1">
+                    ¥{formatMoney(premiums[0].premium + premiums[2].premium)}
+                  </p>
+                  <p className="text-slate-500 text-xs">/ 年</p>
                 </div>
               </div>
-            )}
-
-            {/* CTA */}
-            <div className="mt-4 flex justify-center">
-              <a
-                href="#contact"
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-amber-500/50 text-amber-400 font-medium hover:bg-amber-500/10 transition-all"
-              >
-                联系我获取详细方案
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </a>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+          )}
 
-// 区间费率查找
-function getRangeRate(
-  withSocialRanges: Array<{ min: number; max: number; rate: number }>,
-  withoutSocialRanges: Array<{ min: number; max: number; rate: number }>,
-  age: number,
-  hasSocial: boolean,
-): number {
-  const ranges = hasSocial ? withSocialRanges : withoutSocialRanges;
-  const found = ranges.find((r) => age >= r.min && age <= r.max);
-  return found ? found.rate : ranges[ranges.length - 1].rate;
-}
-
-function PlanCard({ plan }: { plan: PlanResult }) {
-  const animatedPremium = useAnimatedNumber(plan.premium);
-  const isMainPlan = plan.key === 'plan1';
-
-  if (plan.isUnavailable) {
-    return (
-      <div className="p-5 rounded-2xl bg-slate-800/30 border border-slate-700/50 opacity-60 relative overflow-hidden">
-        <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-700 text-slate-400 text-xs font-medium">
-          超龄不可投
-        </div>
-        <h4 className="text-slate-400 font-bold text-lg mb-1 pr-24">{plan.name}</h4>
-        <p className="text-slate-500 text-sm mb-4">{plan.description}</p>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p className="text-slate-500 text-xs">免赔额</p>
-            <p className="text-slate-400">{plan.deductible.split('（')[0]}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs">续保条件</p>
-            <p className="text-slate-400">{plan.renewal.split('（')[0]}</p>
-          </div>
-        </div>
-        <div className="mt-4 pt-4 border-t border-slate-700/50">
-          <p className="text-slate-500 text-xs">该方案最高投保年龄55岁</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`p-5 rounded-2xl border transition-all hover:scale-[1.01] relative overflow-hidden ${
-        isMainPlan
-          ? 'bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/40 shadow-lg shadow-amber-500/10'
-          : 'bg-slate-800/50 border-slate-700/60 hover:border-amber-500/30'
-      }`}
-    >
-      {plan.tag && (
-        <div className="absolute top-0 right-0">
-          <div className="px-3 py-1 bg-gradient-to-l from-amber-500 to-yellow-500 text-slate-900 text-xs font-bold rounded-bl-lg">
-            {plan.tag}
+          {/* CTA */}
+          <div className="flex justify-center">
+            <button
+              onClick={scrollToContact}
+              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold rounded-xl hover:shadow-xl hover:shadow-amber-500/25 hover:-translate-y-0.5 transition-all duration-300"
+            >
+              <Phone className="w-4 h-4" />
+              联系我获取详细方案
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
-
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="flex-1">
-          <h4 className={`font-bold text-lg mb-0.5 ${isMainPlan ? 'text-amber-400' : 'text-white'}`}>
-            {plan.name}
-          </h4>
-          <p className="text-slate-400 text-xs">{plan.description}</p>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-slate-500 text-xs">年缴保费</p>
-          <p className={`text-2xl font-bold ${isMainPlan ? 'text-amber-400' : 'text-white'}`}>
-            ¥{formatMoney(animatedPremium)}
-          </p>
-          {plan.discount > 0 && (
-            <p className="text-green-400 text-xs">已省 ¥{formatMoney(plan.originalPremium * plan.discount / 100)}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-        <div className="p-2 rounded-lg bg-slate-900/40">
-          <p className="text-slate-500 mb-0.5">免赔额</p>
-          <p className="text-slate-300 leading-tight line-clamp-2">{plan.deductible.split('（')[0]}</p>
-        </div>
-        <div className="p-2 rounded-lg bg-slate-900/40">
-          <p className="text-slate-500 mb-0.5">续保</p>
-          <p className={`leading-tight ${plan.renewal.includes('20年') ? 'text-green-400' : 'text-orange-400'}`}>
-            {plan.renewal.split('（')[0]}
-          </p>
-        </div>
-        <div className="p-2 rounded-lg bg-slate-900/40">
-          <p className="text-slate-500 mb-0.5">保额</p>
-          <p className="text-slate-300 leading-tight">{plan.coverage}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-xs">
-        <span className="text-amber-400">✨</span>
-        <span className="text-slate-400">{plan.sellingPoint}</span>
-      </div>
     </div>
   );
 }
