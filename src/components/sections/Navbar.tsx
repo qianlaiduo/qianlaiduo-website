@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { MusicPlayer } from '@/components/ui-custom/MusicPlayer';
 
 const navLinks = [
   { href: '#about', label: '关于我' },
@@ -49,6 +50,10 @@ export function Navbar() {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#d4af37] group-hover:w-full transition-all duration-300" />
             </a>
           ))}
+
+          {/* 音乐播放器 - 嵌入导航栏 */}
+          <MusicPlayer variant="navbar" />
+
           <a href="#contact" className="btn-gold text-sm !py-2 !px-5">
             联系合作
           </a>

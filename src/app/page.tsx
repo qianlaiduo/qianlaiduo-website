@@ -9,7 +9,6 @@ import { Toolbox } from '@/components/sections/Toolbox';
 import { Advantages } from '@/components/sections/Advantages';
 import { Contact } from '@/components/sections/Contact';
 import { Footer } from '@/components/sections/Footer';
-import { MusicPlayer } from '@/components/ui-custom/MusicPlayer';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 export default function Home() {
@@ -33,7 +32,6 @@ export default function Home() {
       <Advantages />
       <Contact />
       <Footer />
-      <MusicPlayer />
     </main>
   );
 }

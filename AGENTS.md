@@ -46,7 +46,7 @@
 
 | 组件 | 路径 | 说明 |
 |------|------|------|
-| Navbar | `components/sections/Navbar.tsx` | 顶部导航栏（透明→毛玻璃滚动效果，移动端菜单） |
+| Navbar | `components/sections/Navbar.tsx` | 顶部导航栏（透明→毛玻璃滚动效果，内嵌音乐播放器，移动端菜单） |
 | Hero | `components/sections/Hero.tsx` | 首屏大标题区（粒子背景、数据亮点、CTA按钮） |
 | About | `components/sections/About.tsx` | 关于我（头像、个人介绍、标签、数据统计） |
 | Services | `components/sections/Services.tsx` | 四大服务卡片（自媒体IP/AI培训/保险服务/企业赋能） |
