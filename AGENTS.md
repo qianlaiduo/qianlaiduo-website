@@ -50,6 +50,7 @@
 | Hero | `components/sections/Hero.tsx` | 首屏大标题区（粒子背景、数据亮点、CTA按钮） |
 | About | `components/sections/About.tsx` | 关于我（头像、个人介绍、标签、数据统计） |
 | Services | `components/sections/Services.tsx` | 四大服务卡片（自媒体IP/AI培训/保险服务/企业赋能） |
+| Toolbox | `components/sections/Toolbox.tsx` | 智能保险工具箱（4个交互式计算器，手风琴展开） |
 | Advantages | `components/sections/Advantages.tsx` | 三大优势（行业深度/技术前沿/实战导向） |
 | Contact | `components/sections/Contact.tsx` | 联系信息（电话/微信/公司地址/CTA） |
 | Footer | `components/sections/Footer.tsx` | 页脚（品牌/导航/社交图标/版权） |
@@ -58,6 +59,15 @@
 
 - `components/ui-custom/ParticleBackground.tsx` — Canvas 粒子动效背景（金色粒子+连线）
 - `hooks/useScrollReveal.ts` — 滚动渐入动画 Hook（基于 IntersectionObserver）
+
+## 保险工具箱工具（4个交互式计算器）
+
+| 工具 | 路径 | 说明 |
+|------|------|------|
+| 医疗险自助报价 | `components/sections/tools/MedicalInsuranceCalculator.tsx` | 年龄/性别/社保/家庭人数 → 保费预估 |
+| 社保养老金推算 | `components/sections/tools/PensionCalculator.tsx` | 当前年龄/工资/已缴年限 → 退休后月领 |
+| 商保本金倒推 | `components/sections/tools/AnnuityReverseCalculator.tsx` | 期望月领 → 倒推年缴保费 |
+| 理财保险计划书 | `components/sections/tools/InsurancePlanGenerator.tsx` | 生成增额寿/年金/分红险利益演示表 |
 
 ## 设计系统
 

@@ -5,6 +5,7 @@ import { Navbar } from '@/components/sections/Navbar';
 import { Hero } from '@/components/sections/Hero';
 import { About } from '@/components/sections/About';
 import { Services } from '@/components/sections/Services';
+import { Toolbox } from '@/components/sections/Toolbox';
 import { Advantages } from '@/components/sections/Advantages';
 import { Contact } from '@/components/sections/Contact';
 import { Footer } from '@/components/sections/Footer';
@@ -27,6 +28,7 @@ export default function Home() {
       <Hero />
       <About />
       <Services />
+      <Toolbox />
       <Advantages />
       <Contact />
       <Footer />
