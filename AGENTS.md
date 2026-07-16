@@ -58,6 +58,7 @@
 ## 自定义组件与Hooks
 
 - `components/ui-custom/ParticleBackground.tsx` — Canvas 粒子动效背景（金色粒子+连线）
+- `components/ui-custom/MusicPlayer.tsx` — 背景音乐播放器（右下固定，深色金色风格）
 - `hooks/useScrollReveal.ts` — 滚动渐入动画 Hook（基于 IntersectionObserver）
 
 ## 保险工具箱工具（4个交互式计算器）
