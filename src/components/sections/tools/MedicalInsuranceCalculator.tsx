@@ -479,35 +479,6 @@ export default function MedicalInsuranceCalculator() {
             ))}
           </div>
 
-          {/* 推荐组合 */}
-          {!premiums[0].isUnavailable && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-950/50 via-amber-900/30 to-amber-950/50 border border-amber-500/20 p-6">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <span className="px-4 py-1 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 text-xs font-bold rounded-full shadow-lg">
-                  💎 推荐组合
-                </span>
-              </div>
-              <div className="grid md:grid-cols-3 gap-6 items-center">
-                <div className="md:col-span-2">
-                  <h4 className="text-xl font-bold text-white mb-2 mt-2">
-                    方案一 + 方案二B = 0免赔全覆盖
-                  </h4>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    舒享+惠享+加享打底（20年保证续保 + 0免赔），叠加安医保尊享版补充重疾特需部 + 海外特药76种保障，
-                    打造全方位医疗保障体系，无惧大病风险。
-                  </p>
-                </div>
-                <div className="text-center md:text-right">
-                  <p className="text-slate-400 text-sm">组合年缴保费约</p>
-                  <p className="text-3xl font-bold text-amber-400 mt-1">
-                    ¥{formatMoney(premiums[0].premium + premiums[2].premium)}
-                  </p>
-                  <p className="text-slate-500 text-xs">/ 年</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* CTA */}
           <div className="flex justify-center">
             <button
