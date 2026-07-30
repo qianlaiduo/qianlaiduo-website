@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Navbar } from '@/components/sections/Navbar';
 import { Hero } from '@/components/sections/Hero';
+import Guestbook from '@/components/sections/Guestbook';
 import { About } from '@/components/sections/About';
 import { Services } from '@/components/sections/Services';
 import { Toolbox } from '@/components/sections/Toolbox';
@@ -26,6 +27,7 @@ export default function Home() {
     <main className="relative min-h-screen">
       <Navbar />
       <Hero />
+      <Guestbook />
       <About />
       <Services />
       <Toolbox />
