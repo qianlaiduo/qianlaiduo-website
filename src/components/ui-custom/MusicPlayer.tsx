@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-// 音频源：信乐团「天高地厚 - 信乐团」网易云音乐外链
-// 注意：第三方外链稳定性不保证，建议后续下载到本地 public/music/ 目录
-const AUDIO_URL = 'https://music.163.com/song/media/outer/url?id=387583';
-const SONG_NAME = '天高地厚';
-const ARTIST_NAME = '信乐团';
+// 音频源：使用免费的 CDN 音乐资源
+// 备选方案：如果外链失效，可下载到 public/music/ 目录使用本地文件
+const AUDIO_URL = 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3';
+const SONG_NAME = '背景音乐';
+const ARTIST_NAME = '轻音乐';
 
 interface MusicPlayerProps {
   variant?: 'navbar' | 'floating';
