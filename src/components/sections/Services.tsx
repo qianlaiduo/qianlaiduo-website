@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 const services = [
   {
     icon: (
@@ -15,11 +17,12 @@ const services = [
         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
       </svg>
     ),
-    title: '自媒体IP打造',
+    title: '自媒体 IP 打造',
     description:
-      '帮保险人打造个人IP，用AI内容工具实现高效获客。从账号定位到内容生产，全流程AI赋能。',
-    features: ['账号定位', 'AI文案', '短视频脚本', '获客转化'],
+      '帮保险人打造个人 IP，用 AI 内容工具实现高效获客。从账号定位到内容生产，全流程 AI 赋能。',
+    features: ['账号定位', 'AI 文案', '短视频脚本', '获客转化'],
     color: '#d4af37',
+    path: '/services/ip-building',
   },
   {
     icon: (
@@ -36,11 +39,12 @@ const services = [
         <path d="M2 12l10 5 10-5" />
       </svg>
     ),
-    title: 'AI实战培训',
+    title: 'AI 实战培训',
     description:
-      '保险人AI实战课程，从文案到获客全链路AI赋能。零基础也能快速上手，用AI为你的保险事业加速。',
-    features: ['AI工具实操', '文案生成', '客户画像', '智能跟进'],
+      '保险人 AI 实战课程，从文案到获客全链路 AI 赋能。零基础也能快速上手，用 AI 为你的保险事业加速。',
+    features: ['AI 工具实操', '文案生成', '客户画像', '智能跟进'],
     color: '#38bdf8',
+    path: '/services/ai-training',
   },
   {
     icon: (
@@ -58,9 +62,10 @@ const services = [
     ),
     title: '保险服务',
     description:
-      '专业医疗险/车险方案，家庭保障规划。1000+客户服务经验，为你量身定制最适合的保障方案。',
+      '专业医疗险/车险方案，家庭保障规划。1000+ 客户服务经验，为你量身定制最适合的保障方案。',
     features: ['医疗险', '车险', '家庭保障', '理赔协助'],
     color: '#a78bfa',
+    path: '/services/insurance',
   },
   {
     icon: (
@@ -78,15 +83,18 @@ const services = [
         <rect x="3" y="14" width="7" height="7" rx="1" />
       </svg>
     ),
-    title: 'AI企业赋能',
+    title: 'AI 企业赋能',
     description:
-      '为保险团队提供AI工具落地+自动化流程解决方案。从团队培训到系统搭建，全面提升团队战斗力。',
+      '为保险团队提供 AI 工具落地 + 自动化流程解决方案。从团队培训到系统搭建，全面提升团队战斗力。',
     features: ['团队培训', '流程自动化', '客户管理', '数据看板'],
     color: '#34d399',
+    path: '/services/enterprise',
   },
 ];
 
 export function Services() {
+  const router = useRouter();
+
   return (
     <section id="services" className="relative py-24 md:py-32 overflow-hidden">
       {/* 背景 */}
@@ -115,7 +123,8 @@ export function Services() {
           {services.map((service, index) => (
             <div
               key={service.title}
-              className="reveal-scale group relative rounded-2xl p-8 border border-[rgba(212,175,55,0.15)] bg-[rgba(15,23,42,0.5)] backdrop-blur-sm transition-all duration-500 hover:border-[rgba(212,175,55,0.4)] hover:bg-[rgba(15,23,42,0.8)] hover:-translate-y-2 hover:shadow-2xl hover:shadow-[rgba(212,175,55,0.1)]"
+              onClick={() => router.push(service.path)}
+              className="reveal-scale group relative rounded-2xl p-8 border border-[rgba(212,175,55,0.15)] bg-[rgba(15,23,42,0.5)] backdrop-blur-sm transition-all duration-500 hover:border-[rgba(212,175,55,0.4)] hover:bg-[rgba(15,23,42,0.8)] hover:-translate-y-2 hover:shadow-2xl hover:shadow-[rgba(212,175,55,0.1)] cursor-pointer"
               style={{ transitionDelay: `${index * 0.1}s` }}
             >
               {/* 顶部装饰线 */}
