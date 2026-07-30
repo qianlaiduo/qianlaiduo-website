@@ -41,18 +41,18 @@ export default function EnterprisePage() {
             {[
               {
                 title: '团队 AI 培训',
-                desc: '为企业团队提供系统化 AI 培训，从基础工具到业务场景全覆盖。通过理论讲解 + 实战演练 + 效果评估，确保团队真正掌握 AI 应用能力，提升整体工作效率。',
-                features: ['基础 AI 工具培训', '业务场景应用', '实战案例演练', '效果评估跟踪'],
+                desc: '从豆包基础操作到智能体搭建，理论 + 实操 + 效果评估。9 个自研工具的搭建过程全拆解，确保团队真正掌握 AI 应用能力，提升整体工作效率。',
+                features: ['豆包/扣子基础操作', '智能体搭建实战', '9 个自研工具拆解', '效果评估跟踪'],
               },
               {
                 title: '流程自动化',
-                desc: '用 AI 自动化重复性工作，释放人力专注于高价值任务。从客户跟进到报表生成，从智能客服到数据分析，打造高效自动化运营体系，降低人力成本 30% 以上。',
-                features: ['客户跟进自动化', '报表自动生成', '智能客服系统', '数据分析自动化'],
+                desc: '客户跟进自动化（催访行动令每日推优先级 + 话术）、报表自动生成、智能客服。用 AI 自动化重复性工作，释放人力专注于高价值任务，降低人力成本 30% 以上。',
+                features: ['催访行动令自动化', '报表自动生成', '智能客服系统', '营销流程自动化'],
               },
               {
                 title: '客户管理系统',
-                desc: 'AI 驱动的智能客户管理，从获客到转化全流程优化。通过客户画像分析、智能推荐、流失预警等功能，提升客户转化率和留存率，实现业绩持续增长。',
-                features: ['客户画像分析', '智能推荐系统', '流失预警', '精准营销'],
+                desc: '微信截图→AI 识别→自动建档（赋能工作台），客户画像分析，智能推荐。AI 驱动的智能客户管理，从获客到转化全流程优化，提升客户转化率和留存率。',
+                features: ['赋能工作台自动建档', '客户画像分析', '智能推荐系统', '流失预警'],
               },
             ].map((item, index) => (
               <div
@@ -74,6 +74,29 @@ export default function EnterprisePage() {
                 </ul>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 核心定位 */}
+      <section className="py-16 md:py-24 bg-[rgba(212,175,55,0.05)]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#f1f5f9] mb-6">
+            核心定位
+          </h2>
+          <div className="space-y-6">
+            <div className="p-6 rounded-2xl bg-[rgba(15,23,42,0.6)] border border-[rgba(212,175,55,0.15)]">
+              <div className="text-[#d4af37] text-sm font-bold mb-2">核心理念</div>
+              <p className="text-[#f1f5f9] text-lg leading-relaxed">
+                "一个人+AI=一支队伍"，用 AI 替掉获客/内容/管理/跟进/进化 5 个部门
+              </p>
+            </div>
+            <div className="p-6 rounded-2xl bg-[rgba(15,23,42,0.6)] border border-[rgba(56,189,248,0.15)]">
+              <div className="text-[#38bdf8] text-sm font-bold mb-2">Slogan</div>
+              <p className="text-[#f1f5f9] text-lg leading-relaxed">
+                保险人的全能 AI 搭档：从获客到成交，一个工具全搞定
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -268,7 +291,7 @@ export default function EnterprisePage() {
             预约免费企业诊断
           </h2>
           <p className="text-[#94a3b8] mb-4">
-            添加微信，获取专属 AI 解决方案
+            添加微信 15211094685 预约免费企业诊断
           </p>
           <p className="text-[#d4af37] text-lg mb-8">
             微信：<span className="font-bold">15211094685</span>
