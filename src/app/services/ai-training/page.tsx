@@ -1,4 +1,5 @@
 import { ServiceDetailLayout } from '@/components/sections/ServiceDetailLayout';
+import { AccordionFAQ } from '@/components/ui-custom/AccordionFAQ';
 
 export default function AITrainingPage() {
   return (
@@ -272,41 +273,30 @@ export default function AITrainingPage() {
           <h2 className="text-3xl md:text-4xl font-bold text-[#f1f5f9] text-center mb-12">
             常见问题
           </h2>
-          <div className="space-y-4">
-            {[
+          <AccordionFAQ
+            items={[
               {
-                q: '零基础能学会吗？',
-                a: '完全可以。课程从最基础的 AI 工具操作讲起，循序渐进。只要会用手机和电脑，就能跟上进度。我们有很多零基础的学员都学得很好。',
+                question: '零基础能学会吗？',
+                answer: '完全可以。课程从最基础的 AI 工具操作讲起，循序渐进。只要会用手机和电脑，就能跟上进度。',
               },
               {
-                q: '课程是线上还是线下？',
-                a: '线下实战营为主（长沙），每月一期，2 天集中训练 + 现场实操。线上直播课作为补充，每周六晚 8 点。',
+                question: '课程是线上还是线下？',
+                answer: '线下实战营为主（长沙），每月一期，2 天集中训练 + 现场实操。线上直播课作为补充。',
               },
               {
-                q: '学完能直接用吗？',
-                a: '课程设计就是实战导向，每个模块都有实操练习。学完当天就能应用到工作中。不承诺保过但保证教的内容都能落地。',
+                question: '学完能直接用吗？',
+                answer: '每个模块都有实操练习，学完当天就能用。不承诺保过但保证教的内容都能落地。',
               },
               {
-                q: '需要什么设备？',
-                a: '一台能上网的手机即可。课程用到的 AI 工具大部分有免费版，不需要额外购买昂贵的软件或设备。',
+                question: '需要什么设备？',
+                answer: '一台能上网的手机即可，课程用到的 AI 工具大部分有免费版。',
               },
               {
-                q: '费用多少？',
-                a: '单次课程收费不超过 5000 元，具体根据课程形式和模块选择。添加微信咨询详情，我们会给你推荐最适合的方案。',
+                question: '费用多少？',
+                answer: '单次课程收费不超过 5000 元，具体根据课程形式和模块选择，添加微信咨询详情。',
               },
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="p-6 rounded-2xl bg-[rgba(15,23,42,0.6)] border border-[rgba(212,175,55,0.15)]"
-              >
-                <h3 className="text-[#f1f5f9] font-bold mb-3 flex items-start gap-2">
-                  <span className="text-[#d4af37]">Q</span>
-                  {item.q}
-                </h3>
-                <p className="text-[#94a3b8] text-sm leading-relaxed pl-6">{item.a}</p>
-              </div>
-            ))}
-          </div>
+            ]}
+          />
         </div>
       </section>
 
