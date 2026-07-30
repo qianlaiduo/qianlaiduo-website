@@ -1,8 +1,24 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ParticleBackground } from '../ui-custom/ParticleBackground';
 
+const quotes = [
+  '不用AI，你不仅比不上新业务员，你甚至比不上客户',
+  '一个人+AI=一支队伍，我用9个AI工具替掉了5个部门',
+  '信息和认知可以被复制，但执行力才是真正的护城河',
+];
+
 export function Hero() {
+  const [currentQuote, setCurrentQuote] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentQuote((prev) => (prev + 1) % quotes.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <section
       id="hero"
@@ -34,15 +50,33 @@ export function Hero() {
         </h1>
 
         <p
-          className="reveal text-lg md:text-xl lg:text-2xl text-[#94a3b8] mb-12 max-w-3xl mx-auto leading-relaxed"
+          className="reveal text-lg md:text-xl lg:text-2xl text-[#94a3b8] mb-6 max-w-3xl mx-auto leading-relaxed"
           style={{ transitionDelay: '0.2s' }}
         >
-          AI赋能保险 · 让科技成为你的竞争力
+          <span className="text-[#d4af37] font-semibold">一个人 + AI = 一支队伍</span>
           <br className="hidden md:block" />
           <span className="text-[#cbd5e1]">
-            十年保险深耕 + AI实战落地，助你在新时代抢占先机
+            十年保险深耕 + 9个自研AI工具，助你在新时代抢占先机
           </span>
         </p>
+
+        {/* 金句轮播 */}
+        <div
+          className="reveal mb-12 h-16 flex items-center justify-center"
+          style={{ transitionDelay: '0.3s' }}
+        >
+          <div className="relative w-full max-w-2xl">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-px bg-gradient-to-r from-transparent to-[#d4af37]/50" />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-px bg-gradient-to-l from-transparent to-[#d4af37]/50 ml-auto" />
+            </div>
+            <p className="relative text-[#d4af37] text-base md:text-lg font-medium italic px-8 transition-opacity duration-500">
+              "{quotes[currentQuote]}"
+            </p>
+          </div>
+        </div>
 
         <div
           className="reveal flex flex-col sm:flex-row items-center justify-center gap-4"
@@ -95,15 +129,15 @@ export function Hero() {
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold gold-gradient-text mb-1">
-              1000+
+              9个
             </div>
-            <div className="text-[#94a3b8] text-sm md:text-base">服务客户</div>
+            <div className="text-[#94a3b8] text-sm md:text-base">自研AI工具</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold gold-gradient-text mb-1">
               100+
             </div>
-            <div className="text-[#94a3b8] text-sm md:text-base">AI学员</div>
+            <div className="text-[#94a3b8] text-sm md:text-base">AI实战学员</div>
           </div>
         </div>
       </div>

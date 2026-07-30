@@ -1,15 +1,15 @@
 'use client';
 
 const tags = [
-  '保险资深从业者',
-  'AI应用探索者',
-  '个人IP打造者',
+  '10年保险老兵',
+  '9个自研AI工具',
   '保险人AI实战导师',
+  '个人IP打造者',
 ];
 
 const stats = [
   { value: '10年+', label: '保险行业经验' },
-  { value: '1000+', label: '服务客户数量' },
+  { value: '9个', label: '自研AI工具' },
   { value: '100+', label: 'AI实战学员' },
   { value: '50+', label: '企业内训场次' },
 ];
@@ -35,7 +35,7 @@ export function About() {
             关于<span className="gold-gradient-text">我</span>
           </h2>
           <p className="reveal text-[#94a3b8] text-lg max-w-xl mx-auto">
-            十年深耕保险行业，如今用AI重新定义保险营销
+            从手工写文案到用AI重构保险人全工作流
           </p>
         </div>
 
@@ -85,14 +85,25 @@ export function About() {
               中国平安保险代理人 · 长沙
             </p>
 
-            <p className="text-[#94a3b8] leading-relaxed mb-8 text-base md:text-lg">
-              10年+保险行业深耕经验，服务超1000位客户。从传统保险销售到AI时代的数字化转型先行者，我始终相信：
+            <p className="text-[#94a3b8] leading-relaxed mb-6 text-base md:text-lg">
+              10年保险老兵，从传统保险销售到AI时代的数字化转型先行者。
               <span className="text-[#cbd5e1]">
-                科技不是替代人，而是让专业的人更有价值。
+                自研9个AI工具，覆盖获客→内容→客户管理→跟进→学习全链路，
+                用AI替掉了5个部门的工作。
               </span>
             </p>
+            <p className="text-[#94a3b8] leading-relaxed mb-6 text-base md:text-lg">
+              课程从99元体验营迭代到第三期299元实战营，专注实战落地。
+              <span className="text-[#d4af37] font-medium">
+                2026年6月2日单日4单1.7万保费，
+              </span>
+              全部来自AI赋能的自媒体获客。
+            </p>
             <p className="text-[#94a3b8] leading-relaxed mb-8 text-base md:text-lg">
-              作为保险人AI实战导师，我致力于将最前沿的AI技术转化为保险从业者可落地的实战工具，帮助更多同行用AI提升效率、打造个人品牌、实现业绩倍增。
+              我始终相信：
+              <span className="text-[#cbd5e1]">
+                一个人 + AI = 一支队伍。科技不是替代人，而是让专业的人更有价值。
+              </span>
             </p>
 
             {/* 标签 */}
