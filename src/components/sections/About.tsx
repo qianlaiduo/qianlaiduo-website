@@ -49,15 +49,12 @@ export function About() {
 
               {/* 头像容器 */}
               <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden border-2 border-[rgba(212,175,55,0.4)] gold-border-glow">
-                {/* 头像占位 - 渐变背景 + 首字母 */}
-                <div className="w-full h-full bg-gradient-to-br from-[#1e293b] via-[#0f172a] to-[#0a0e1a] flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-7xl md:text-8xl font-black gold-gradient-text mb-2">
-                      钱
-                    </div>
-                    <div className="text-[#64748b] text-sm">头像预留位</div>
-                  </div>
-                </div>
+                {/* 真实照片 */}
+                <img
+                  src="/images/avatar.jpg"
+                  alt="钱磊 - 钱来多"
+                  className="w-full h-full object-cover"
+                />
 
                 {/* 装饰角标 */}
                 <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-[#d4af37]/60" />
