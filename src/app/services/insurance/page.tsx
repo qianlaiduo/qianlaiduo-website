@@ -4,6 +4,7 @@ import { ProcessFlow } from '@/components/ui-custom/ProcessFlow';
 import { AccordionFAQ } from '@/components/ui-custom/AccordionFAQ';
 import StaircaseChart from '@/components/StaircaseChart';
 import HatChart from '@/components/HatChart';
+import ValueAddedServices from '@/components/ValueAddedServices';
 
 export default function InsurancePage() {
   // 服务范围视觉卡片
@@ -116,6 +117,13 @@ export default function InsurancePage() {
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <StaircaseChart />
+        </div>
+      </section>
+
+      {/* 增值服务 */}
+      <section className="py-16 md:py-24 bg-[rgba(15,23,42,0.3)]">
+        <div className="max-w-7xl mx-auto px-6">
+          <ValueAddedServices />
         </div>
       </section>
 
