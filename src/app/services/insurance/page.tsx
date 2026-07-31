@@ -2,16 +2,10 @@ import { ServiceDetailLayout } from '@/components/sections/ServiceDetailLayout';
 import { VisualCardGrid } from '@/components/ui-custom/VisualCardGrid';
 import { ProcessFlow } from '@/components/ui-custom/ProcessFlow';
 import { AccordionFAQ } from '@/components/ui-custom/AccordionFAQ';
-import { ProductShowcase } from '@/components/ProductShowcase';
-import { useRef } from 'react';
+import { StaircaseChart } from '@/components/StaircaseChart';
 import HatChart from '@/components/HatChart';
 
 export default function InsurancePage() {
-  const productsRef = useRef<HTMLDivElement>(null);
-
-  const scrollToProducts = () => {
-    productsRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
   // 服务范围视觉卡片
   const serviceCards = [
     {
@@ -114,14 +108,14 @@ export default function InsurancePage() {
       {/* 草帽图 - 交互式观念导入 */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <HatChart onScrollToProducts={scrollToProducts} />
+          <HatChart />
         </div>
       </section>
 
-      {/* 产品展示 - 8 大险种 */}
-      <section ref={productsRef} className="py-16 md:py-24 bg-white">
+      {/* 阶梯式保障图 */}
+      <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <ProductShowcase />
+          <StaircaseChart />
         </div>
       </section>
 
