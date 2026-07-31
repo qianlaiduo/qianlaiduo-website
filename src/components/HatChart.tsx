@@ -313,15 +313,16 @@ export default function HatChart({ onScrollToProducts }: HatChartProps) {
           {/* 第 9 步：保险保护罩 */}
           {currentStep >= 9 && (
             <g className="animate-fadeIn">
-              {/* 保护罩 */}
+              {/* 保护罩 - 向上偏移避免遮挡奋斗期 */}
               <path
-                d="M 100 100 Q 600 50, 1100 100 L 1100 200 Q 600 150, 100 200 Z"
+                d="M 100 60 Q 600 10, 1100 60 L 1100 140 Q 600 90, 100 140 Z"
                 fill="#2196f3"
                 opacity="0.15"
                 stroke="#2196f3"
                 strokeWidth="2"
               />
-              <text x="600" y="130" textAnchor="middle" fill="#1976d2" fontWeight="700" fontSize="20">
+              {/* "保险"文字放在盖子顶部 */}
+              <text x="600" y="95" textAnchor="middle" fill="#1976d2" fontWeight="700" fontSize="20">
                 保险
               </text>
 
