@@ -2,6 +2,7 @@ import { ServiceDetailLayout } from '@/components/sections/ServiceDetailLayout';
 import { VisualCardGrid } from '@/components/ui-custom/VisualCardGrid';
 import { ProcessFlow } from '@/components/ui-custom/ProcessFlow';
 import { AccordionFAQ } from '@/components/ui-custom/AccordionFAQ';
+import { ProductShowcase } from '@/components/ProductShowcase';
 import { useRef } from 'react';
 import HatChart from '@/components/HatChart';
 
@@ -117,10 +118,10 @@ export default function InsurancePage() {
         </div>
       </section>
 
-      {/* 服务范围 - 视觉卡片 */}
-      <section ref={productsRef} className="py-16 md:py-24">
+      {/* 产品展示 - 8 大险种 */}
+      <section ref={productsRef} className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
-          <VisualCardGrid cards={serviceCards} title="服务范围" />
+          <ProductShowcase />
         </div>
       </section>
 
