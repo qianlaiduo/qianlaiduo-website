@@ -2,7 +2,7 @@ import { ServiceDetailLayout } from '@/components/sections/ServiceDetailLayout';
 import { VisualCardGrid } from '@/components/ui-custom/VisualCardGrid';
 import { ProcessFlow } from '@/components/ui-custom/ProcessFlow';
 import { AccordionFAQ } from '@/components/ui-custom/AccordionFAQ';
-import { StaircaseChart } from '@/components/StaircaseChart';
+import StaircaseChart from '@/components/StaircaseChart';
 import HatChart from '@/components/HatChart';
 
 export default function InsurancePage() {
